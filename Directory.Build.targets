@@ -1,0 +1,15 @@
+<Project>
+  <!-- Custom build targets -->
+
+  <!-- Clean artifacts on clean -->
+  <Target Name="CleanArtifacts" AfterTargets="Clean">
+    <RemoveDir Directories="$(MSBuildThisFileDirectory)artifacts" />
+  </Target>
+
+  <!-- Display build information -->
+  <Target Name="DisplayBuildInfo" BeforeTargets="CoreCompile">
+    <Message Text="Building $(MSBuildProjectName) - Version: $(Version)" Importance="high" />
+    <Message Text="Configuration: $(Configuration)" Importance="high" />
+    <Message Text="Target Framework: $(TargetFramework)" Importance="high" />
+  </Target>
+</Project>
