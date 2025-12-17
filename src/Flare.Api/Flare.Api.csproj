@@ -10,6 +10,9 @@
         <PackageReference Include="Scalar.AspNetCore" />
         <PackageReference Include="Asp.Versioning.Http" />
         <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+        <PackageReference Include="Serilog.AspNetCore" />
+        <PackageReference Include="Serilog.Sinks.Console" />
+        <PackageReference Include="Serilog.Sinks.File" />
     </ItemGroup>
 
     <ItemGroup>
