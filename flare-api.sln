@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlareApi", "src\FlareApi\FlareApi.csproj", "{42C748FF-1FD1-4A36-B9F0-93F324E0D438}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flare.Api", "src\Flare.Api\Flare.Api.csproj", "{42C748FF-1FD1-4A36-B9F0-93F324E0D438}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{73DAB479-9CD1-466D-AB5E-FF85E01C8102}"
 	ProjectSection(SolutionItems) = preProject
@@ -12,6 +12,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{73DAB4
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flare.Domain", "src\Flare.Domain\Flare.Domain.csproj", "{A24E013D-CCE2-4DEB-811C-60B643C4033F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flare.Infrastructure", "src\Flare.Infrastructure\Flare.Infrastructure.csproj", "{EB82F8A8-8AE5-437E-A04E-A40E2E7AD216}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flare.Application", "src\Flare.Application\Flare.Application.csproj", "{164A629F-F158-4EF8-B7D2-3F245D9FC35F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,5 +28,17 @@ Global
 		{42C748FF-1FD1-4A36-B9F0-93F324E0D438}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42C748FF-1FD1-4A36-B9F0-93F324E0D438}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{42C748FF-1FD1-4A36-B9F0-93F324E0D438}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A24E013D-CCE2-4DEB-811C-60B643C4033F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A24E013D-CCE2-4DEB-811C-60B643C4033F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A24E013D-CCE2-4DEB-811C-60B643C4033F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A24E013D-CCE2-4DEB-811C-60B643C4033F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB82F8A8-8AE5-437E-A04E-A40E2E7AD216}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB82F8A8-8AE5-437E-A04E-A40E2E7AD216}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB82F8A8-8AE5-437E-A04E-A40E2E7AD216}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB82F8A8-8AE5-437E-A04E-A40E2E7AD216}.Release|Any CPU.Build.0 = Release|Any CPU
+		{164A629F-F158-4EF8-B7D2-3F245D9FC35F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{164A629F-F158-4EF8-B7D2-3F245D9FC35F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{164A629F-F158-4EF8-B7D2-3F245D9FC35F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{164A629F-F158-4EF8-B7D2-3F245D9FC35F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

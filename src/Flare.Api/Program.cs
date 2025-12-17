@@ -1,4 +1,4 @@
-namespace FlareApi;
+namespace Flare.Api;
 
 public class Program
 {

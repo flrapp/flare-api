@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Scalar.AspNetCore;
 
-namespace FlareApi;
+namespace Flare.Api;
 
 public class Startup
 {
@@ -53,7 +53,7 @@ public class Startup
 
                 endpoints.MapScalarApiReference(options =>
                 {
-                    options.WithTitle("FlareApi")
+                    options.WithTitle("Flare.Api")
                            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
                 });
             }
