@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
+using Flare.Api.Middleware;
 using Flare.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -22,6 +23,9 @@ public class Startup
     {
         services.AddInfrastructure(Configuration);
 
+        services.AddExceptionHandler<GlobalExceptionHandler>();
+        services.AddProblemDetails();
+
         services.AddAuthorization();
 
         services.AddApiVersioning(options =>
@@ -41,6 +45,8 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IApiVersionDescriptionProvider apiVersionDescriptionProvider)
     {
+        app.UseExceptionHandler();
+
         app.UseHttpsRedirection();
         app.UseRouting();
         app.UseAuthorization();
