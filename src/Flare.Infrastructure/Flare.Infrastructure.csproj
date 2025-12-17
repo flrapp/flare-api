@@ -10,4 +10,14 @@
       <ProjectReference Include="..\Flare.Domain\Flare.Domain.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Data\Configurations\" />
+      <Folder Include="Data\Repositories\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.EntityFrameworkCore" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    </ItemGroup>
+
 </Project>

@@ -20,6 +20,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Flare.Application\Flare.Application.csproj" />
+      <ProjectReference Include="..\Flare.Infrastructure\Flare.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

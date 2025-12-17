@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
+using Flare.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +20,8 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        services.AddInfrastructure(Configuration);
+
         services.AddAuthorization();
 
         services.AddApiVersioning(options =>
