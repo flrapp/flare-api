@@ -36,7 +36,9 @@ public class Startup
         services.AddServices();
         services.AddAuthorizationHandler();
         services.AddApplicationAuth();
-        
+        services.AddHttpContextAccessor();
+        services.AddControllers();
+
         services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -64,6 +66,8 @@ public class Startup
 
         app.UseEndpoints(endpoints =>
         {
+            endpoints.MapControllers();
+
             if (env.IsDevelopment())
             {
                 foreach (var description in apiVersionDescriptionProvider.ApiVersionDescriptions)

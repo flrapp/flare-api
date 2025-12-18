@@ -13,7 +13,7 @@ public static class AuthenticationExtensions
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, authResult.UserId.ToString()),
-            new Claim(ClaimTypes.Email, authResult.Email),
+            new Claim("Username", authResult.Username),
             new Claim(ClaimTypes.Name, authResult.FullName),
             new Claim(ClaimTypes.Role, authResult.GlobalRole.ToString())
         };

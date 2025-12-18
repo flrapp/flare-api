@@ -1,25 +1,21 @@
 using Domian.Enums;
 using Flare.Application.Interfaces;
-using Flare.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using Flare.Infrastructure.Data.Repositories.Interfaces;
 
 namespace Flare.Application.Services;
 
 public class PermissionService : IPermissionService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IProjectMemberRepository _projectMemberRepository;
 
-    public PermissionService(ApplicationDbContext context)
+    public PermissionService(IProjectMemberRepository projectMemberRepository)
     {
-        _context = context;
+        _projectMemberRepository = projectMemberRepository;
     }
 
     public async Task<ProjectRole?> GetUserProjectRoleAsync(Guid userId, Guid projectId)
     {
-        var membership = await _context.ProjectMembers
-            .FirstOrDefaultAsync(pm => pm.UserId == userId && pm.ProjectId == projectId);
-
-        return membership?.ProjectRole;
+        return await _projectMemberRepository.GetUserProjectRoleAsync(userId, projectId);
     }
 
     public async Task<bool> HasProjectAccessAsync(Guid userId, Guid projectId, ProjectRole minimumRole)
@@ -42,8 +38,7 @@ public class PermissionService : IPermissionService
 
     public async Task<bool> IsProjectMemberAsync(Guid userId, Guid projectId)
     {
-        return await _context.ProjectMembers
-            .AnyAsync(pm => pm.UserId == userId && pm.ProjectId == projectId);
+        return await _projectMemberRepository.ExistsAsync(userId, projectId);
     }
 
     public async Task<bool> CanManageProjectAsync(Guid userId, Guid projectId)

@@ -17,9 +17,9 @@ public static class ServiceCollectionRegistration
     
     public static IServiceCollection AddAuthorizationHandler(this IServiceCollection services)
     {
-        services.AddSingleton<IAuthorizationHandler, AdminRequirementHandler>();
-        services.AddSingleton<IAuthorizationHandler, ProjectAccessRequirementHandler>();
-        services.AddSingleton<IAuthorizationHandler, ProjectOwnerRequirementHandler>();
+        services.AddScoped<IAuthorizationHandler, AdminRequirementHandler>();
+        services.AddScoped<IAuthorizationHandler, ProjectAccessRequirementHandler>();
+        services.AddScoped<IAuthorizationHandler, ProjectOwnerRequirementHandler>();
         
         return services;
     }

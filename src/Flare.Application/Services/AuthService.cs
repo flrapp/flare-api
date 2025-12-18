@@ -2,26 +2,24 @@ using Domian.Entities;
 using Domian.Enums;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
-using Flare.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using Flare.Infrastructure.Data.Repositories.Interfaces;
 
 namespace Flare.Application.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUserRepository _userRepository;
 
-    public AuthService(ApplicationDbContext context)
+    public AuthService(IUserRepository userRepository)
     {
-        _context = context;
+        _userRepository = userRepository;
     }
 
     public async Task<AuthResultDto?> LoginAsync(LoginDto loginDto)
     {
-        var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == loginDto.Email);
+        var user = await _userRepository.GetActiveByUsernameAsync(loginDto.Username);
 
-        if (user == null || !user.IsActive)
+        if (user == null)
         {
             return null;
         }
@@ -34,7 +32,7 @@ public class AuthService : IAuthService
         return new AuthResultDto
         {
             UserId = user.Id,
-            Email = user.Email,
+            Username = user.Username,
             FullName = user.FullName,
             GlobalRole = user.GlobalRole
         };
@@ -42,18 +40,17 @@ public class AuthService : IAuthService
 
     public async Task<AuthResultDto> RegisterAsync(RegisterDto registerDto)
     {
-        var existingUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == registerDto.Email);
+        var exists = await _userRepository.ExistsByUsernameAsync(registerDto.Username);
 
-        if (existingUser != null)
+        if (exists)
         {
-            throw new InvalidOperationException("User with this email already exists");
+            throw new InvalidOperationException("User with this username already exists");
         }
 
         var user = new User
         {
             Id = Guid.NewGuid(),
-            Email = registerDto.Email,
+            Username = registerDto.Username,
             PasswordHash = HashPassword(registerDto.Password),
             FullName = registerDto.FullName,
             GlobalRole = GlobalRole.User,
@@ -61,13 +58,12 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        await _userRepository.AddAsync(user);
 
         return new AuthResultDto
         {
             UserId = user.Id,
-            Email = user.Email,
+            Username = user.Username,
             FullName = user.FullName,
             GlobalRole = user.GlobalRole
         };
@@ -75,23 +71,21 @@ public class AuthService : IAuthService
 
     public async Task<User?> GetUserByIdAsync(Guid userId)
     {
-        return await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+        return await _userRepository.GetActiveByIdAsync(userId);
     }
 
-    public async Task<User?> GetUserByEmailAsync(string email)
+    public async Task<User?> GetUserByUsernameAsync(string username)
     {
-        return await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+        return await _userRepository.GetActiveByUsernameAsync(username);
     }
 
     public async Task UpdateLastLoginAsync(Guid userId)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _userRepository.GetByIdAsync(userId);
         if (user != null)
         {
             user.LastLoginAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            await _userRepository.UpdateAsync(user);
         }
     }
 

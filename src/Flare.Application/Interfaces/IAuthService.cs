@@ -8,7 +8,7 @@ public interface IAuthService
     Task<AuthResultDto?> LoginAsync(LoginDto loginDto);
     Task<AuthResultDto> RegisterAsync(RegisterDto registerDto);
     Task<User?> GetUserByIdAsync(Guid userId);
-    Task<User?> GetUserByEmailAsync(string email);
+    Task<User?> GetUserByUsernameAsync(string username);
     Task UpdateLastLoginAsync(Guid userId);
     string HashPassword(string password);
     bool VerifyPassword(string password, string passwordHash);
