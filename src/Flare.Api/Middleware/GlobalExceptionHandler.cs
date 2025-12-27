@@ -1,4 +1,4 @@
-using Domian.Exceptions;
+using Flare.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 

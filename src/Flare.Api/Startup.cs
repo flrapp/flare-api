@@ -1,9 +1,15 @@
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
+using Flare.Api.Extensions;
 using Flare.Api.Middleware;
+using Flare.Application;
+using Flare.Application.Authorization;
+using Flare.Application.Authorization.Requirements;
 using Flare.Infrastructure;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Scalar.AspNetCore;
@@ -26,7 +32,11 @@ public class Startup
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();
 
-        services.AddAuthorization();
+        services.AddServices();
+        services.AddAuthorizationHandler();
+        services.AddApplicationAuth();
+        services.AddHttpContextAccessor();
+        services.AddControllers();
 
         services.AddApiVersioning(options =>
         {
@@ -49,10 +59,14 @@ public class Startup
 
         app.UseHttpsRedirection();
         app.UseRouting();
+
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>
         {
+            endpoints.MapControllers();
+
             if (env.IsDevelopment())
             {
                 foreach (var description in apiVersionDescriptionProvider.ApiVersionDescriptions)
