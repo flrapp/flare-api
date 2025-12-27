@@ -19,8 +19,4 @@
         <PackageReference Include="Microsoft.AspNetCore.Routing.Abstractions" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Interfaces\Repositories\" />
-    </ItemGroup>
-
 </Project>

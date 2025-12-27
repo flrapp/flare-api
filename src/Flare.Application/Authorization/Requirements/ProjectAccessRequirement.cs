@@ -1,4 +1,4 @@
-using Domian.Enums;
+using Flare.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Flare.Application.Authorization.Requirements;

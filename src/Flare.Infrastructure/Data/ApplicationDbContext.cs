@@ -1,4 +1,4 @@
-﻿using Domian.Entities;
+﻿using Flare.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Flare.Infrastructure.Data;

@@ -1,6 +1,6 @@
-﻿using Domian.Enums;
+﻿using Flare.Domain.Enums;
 
-namespace Domian.Entities;
+namespace Flare.Domain.Entities;
 
 public class ProjectMember
 {

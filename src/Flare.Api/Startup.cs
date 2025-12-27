@@ -1,6 +1,5 @@
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
-using Domian.Enums;
 using Flare.Api.Extensions;
 using Flare.Api.Middleware;
 using Flare.Application;

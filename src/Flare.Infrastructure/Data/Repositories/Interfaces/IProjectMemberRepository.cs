@@ -1,5 +1,5 @@
-using Domian.Entities;
-using Domian.Enums;
+using Flare.Domain.Entities;
+using Flare.Domain.Enums;
 
 namespace Flare.Infrastructure.Data.Repositories.Interfaces;
 

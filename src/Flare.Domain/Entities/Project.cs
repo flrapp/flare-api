@@ -1,4 +1,4 @@
-﻿namespace Domian.Entities;
+﻿namespace Flare.Domain.Entities;
 
 public class Project
 {

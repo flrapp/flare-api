@@ -1,4 +1,4 @@
-namespace Domian.Exceptions;
+namespace Flare.Domain.Exceptions;
 
 public class ValidationException : DomainException
 {

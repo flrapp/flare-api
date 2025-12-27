@@ -1,7 +1,7 @@
-using Domian.Entities;
-using Domian.Enums;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
+using Flare.Domain.Entities;
+using Flare.Domain.Enums;
 using Flare.Infrastructure.Data.Repositories.Interfaces;
 
 namespace Flare.Application.Services;

@@ -1,5 +1,5 @@
-using Domian.Entities;
 using Flare.Application.DTOs;
+using Flare.Domain.Entities;
 
 namespace Flare.Application.Interfaces;
 

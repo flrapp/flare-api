@@ -1,6 +1,6 @@
 using System.Security.Claims;
-using Domian.Enums;
 using Flare.Application.Authorization.Requirements;
+using Flare.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Flare.Application.Authorization.Handlers;

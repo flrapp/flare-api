@@ -1,4 +1,4 @@
-using Domian.Entities;
+using Flare.Domain.Entities;
 using Flare.Infrastructure.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 

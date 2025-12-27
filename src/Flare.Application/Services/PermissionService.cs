@@ -1,5 +1,5 @@
-using Domian.Enums;
 using Flare.Application.Interfaces;
+using Flare.Domain.Enums;
 using Flare.Infrastructure.Data.Repositories.Interfaces;
 
 namespace Flare.Application.Services;

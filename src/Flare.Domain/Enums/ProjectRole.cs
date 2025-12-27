@@ -1,4 +1,4 @@
-﻿namespace Domian.Enums;
+﻿namespace Flare.Domain.Enums;
 
 public enum ProjectRole
 {

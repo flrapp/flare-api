@@ -1,4 +1,4 @@
-using Domian.Enums;
+using Flare.Domain.Enums;
 
 namespace Flare.Application.DTOs;
 

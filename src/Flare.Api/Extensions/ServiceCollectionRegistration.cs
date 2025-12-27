@@ -1,6 +1,6 @@
-﻿using Domian.Enums;
-using Flare.Application.Authorization;
+﻿using Flare.Application.Authorization;
 using Flare.Application.Authorization.Requirements;
+using Flare.Domain.Enums;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace Flare.Api.Extensions;

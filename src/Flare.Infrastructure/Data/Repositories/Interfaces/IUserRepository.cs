@@ -1,4 +1,4 @@
-using Domian.Entities;
+using Flare.Domain.Entities;
 
 namespace Flare.Infrastructure.Data.Repositories.Interfaces;
 
