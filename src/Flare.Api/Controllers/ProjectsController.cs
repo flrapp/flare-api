@@ -33,20 +33,12 @@ public class ProjectsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        try
-        {
-            var userId = HttpContext.GetCurrentUserId()!.Value;
-            var result = await _projectService.CreateAsync(dto, userId);
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _projectService.CreateAsync(dto, userId);
 
-            _logger.LogInformation("Project {ProjectId} created by user {UserId}", result.Id, userId);
+        _logger.LogInformation("Project {ProjectId} created by user {UserId}", result.Id, userId);
 
-            return CreatedAtAction(nameof(GetProject), new { projectId = result.Id }, result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating project");
-            return BadRequest(new { message = ex.Message });
-        }
+        return CreatedAtAction(nameof(GetProject), new { projectId = result.Id }, result);
     }
 
     [HttpGet]
@@ -55,18 +47,10 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<List<ProjectResponseDto>>> GetUserProjects()
     {
-        try
-        {
-            var userId = HttpContext.GetCurrentUserId()!.Value;
-            var result = await _projectService.GetUserProjectsAsync(userId);
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _projectService.GetUserProjectsAsync(userId);
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving user projects");
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(result);
     }
 
     [HttpGet("{projectId}")]
@@ -77,18 +61,10 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ProjectDetailResponseDto>> GetProject(Guid projectId)
     {
-        try
-        {
-            var userId = HttpContext.GetCurrentUserId()!.Value;
-            var result = await _projectService.GetByIdAsync(projectId, userId);
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _projectService.GetByIdAsync(projectId, userId);
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving project {ProjectId}", projectId);
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(result);
     }
 
     [HttpGet("by-alias/{alias}")]
@@ -98,18 +74,10 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ProjectResponseDto>> GetProjectByAlias(string alias)
     {
-        try
-        {
-            var userId = HttpContext.GetCurrentUserId()!.Value;
-            var result = await _projectService.GetByAliasAsync(alias, userId);
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _projectService.GetByAliasAsync(alias, userId);
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving project by alias {Alias}", alias);
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(result);
     }
 
     [HttpPut("{projectId}")]
@@ -126,20 +94,12 @@ public class ProjectsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        try
-        {
-            var userId = HttpContext.GetCurrentUserId()!.Value;
-            var result = await _projectService.UpdateAsync(projectId, dto, userId);
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _projectService.UpdateAsync(projectId, dto, userId);
 
-            _logger.LogInformation("Project {ProjectId} updated by user {UserId}", projectId, userId);
+        _logger.LogInformation("Project {ProjectId} updated by user {UserId}", projectId, userId);
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating project {ProjectId}", projectId);
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(result);
     }
 
     [HttpDelete("{projectId}")]
@@ -150,20 +110,12 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteProject(Guid projectId)
     {
-        try
-        {
-            var userId = HttpContext.GetCurrentUserId()!.Value;
-            await _projectService.DeleteAsync(projectId, userId);
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        await _projectService.DeleteAsync(projectId, userId);
 
-            _logger.LogInformation("Project {ProjectId} deleted by user {UserId}", projectId, userId);
+        _logger.LogInformation("Project {ProjectId} deleted by user {UserId}", projectId, userId);
 
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting project {ProjectId}", projectId);
-            return BadRequest(new { message = ex.Message });
-        }
+        return NoContent();
     }
 
     [HttpPost("{projectId}/regenerate-api-key")]
@@ -174,20 +126,12 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<RegenerateApiKeyResponseDto>> RegenerateApiKey(Guid projectId)
     {
-        try
-        {
-            var userId = HttpContext.GetCurrentUserId()!.Value;
-            var result = await _projectService.RegenerateApiKeyAsync(projectId, userId);
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _projectService.RegenerateApiKeyAsync(projectId, userId);
 
-            _logger.LogInformation("API key regenerated for project {ProjectId} by user {UserId}", projectId, userId);
+        _logger.LogInformation("API key regenerated for project {ProjectId} by user {UserId}", projectId, userId);
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error regenerating API key for project {ProjectId}", projectId);
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(result);
     }
 
     [HttpPost("{projectId}/archive")]
@@ -198,20 +142,12 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ArchiveProject(Guid projectId)
     {
-        try
-        {
-            var userId = HttpContext.GetCurrentUserId()!.Value;
-            await _projectService.ArchiveAsync(projectId, userId);
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        await _projectService.ArchiveAsync(projectId, userId);
 
-            _logger.LogInformation("Project {ProjectId} archived by user {UserId}", projectId, userId);
+        _logger.LogInformation("Project {ProjectId} archived by user {UserId}", projectId, userId);
 
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error archiving project {ProjectId}", projectId);
-            return BadRequest(new { message = ex.Message });
-        }
+        return NoContent();
     }
 
     [HttpPost("{projectId}/unarchive")]
@@ -222,19 +158,11 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UnarchiveProject(Guid projectId)
     {
-        try
-        {
-            var userId = HttpContext.GetCurrentUserId()!.Value;
-            await _projectService.UnarchiveAsync(projectId, userId);
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        await _projectService.UnarchiveAsync(projectId, userId);
 
-            _logger.LogInformation("Project {ProjectId} unarchived by user {UserId}", projectId, userId);
+        _logger.LogInformation("Project {ProjectId} unarchived by user {UserId}", projectId, userId);
 
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error unarchiving project {ProjectId}", projectId);
-            return BadRequest(new { message = ex.Message });
-        }
+        return NoContent();
     }
 }
