@@ -6,44 +6,87 @@ namespace Flare.Application.Services;
 
 public class PermissionService : IPermissionService
 {
-    private readonly IProjectMemberRepository _projectMemberRepository;
+    private readonly IProjectUserRepository _projectUserRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly IScopeRepository _scopeRepository;
 
-    public PermissionService(IProjectMemberRepository projectMemberRepository)
+    public PermissionService(
+        IProjectUserRepository projectUserRepository,
+        IUserRepository userRepository,
+        IScopeRepository scopeRepository)
     {
-        _projectMemberRepository = projectMemberRepository;
+        _projectUserRepository = projectUserRepository;
+        _userRepository = userRepository;
+        _scopeRepository = scopeRepository;
     }
-
-    public async Task<ProjectRole?> GetUserProjectRoleAsync(Guid userId, Guid projectId)
-    {
-        return await _projectMemberRepository.GetUserProjectRoleAsync(userId, projectId);
-    }
-
-    public async Task<bool> HasProjectAccessAsync(Guid userId, Guid projectId, ProjectRole minimumRole)
-    {
-        var userRole = await GetUserProjectRoleAsync(userId, projectId);
-
-        if (userRole == null)
-        {
-            return false;
-        }
-
-        return userRole.Value >= minimumRole;
-    }
-
-    public async Task<bool> IsProjectOwnerAsync(Guid userId, Guid projectId)
-    {
-        var role = await GetUserProjectRoleAsync(userId, projectId);
-        return role == ProjectRole.Owner;
-    }
-
+    
     public async Task<bool> IsProjectMemberAsync(Guid userId, Guid projectId)
     {
-        return await _projectMemberRepository.ExistsAsync(userId, projectId);
+        if (await IsAdminAsync(userId))
+        {
+            return true;
+        }
+
+        return await _projectUserRepository.ExistsAsync(userId, projectId);
     }
 
-    public async Task<bool> CanManageProjectAsync(Guid userId, Guid projectId)
+    #region New granular permission methods
+
+    public async Task<bool> IsAdminAsync(Guid userId)
     {
-        var role = await GetUserProjectRoleAsync(userId, projectId);
-        return role == ProjectRole.Owner || role == ProjectRole.Editor;
+        var user = await _userRepository.GetByIdAsync(userId);
+        return user?.GlobalRole == GlobalRole.Admin;
     }
+
+    public async Task<bool> HasProjectPermissionAsync(Guid userId, Guid projectId, ProjectPermission permission)
+    {
+        // Admin bypass: Admins have all project permissions
+        if (await IsAdminAsync(userId))
+        {
+            return true;
+        }
+
+        return await _projectUserRepository.HasProjectPermissionAsync(userId, projectId, permission);
+    }
+
+    public async Task<List<ProjectPermission>> GetUserProjectPermissionsAsync(Guid userId, Guid projectId)
+    {
+        // Admin bypass: Admins have all permissions
+        if (await IsAdminAsync(userId))
+        {
+            return Enum.GetValues<ProjectPermission>().ToList();
+        }
+
+        return await _projectUserRepository.GetUserProjectPermissionsAsync(userId, projectId);
+    }
+
+    public async Task<bool> HasScopePermissionAsync(Guid userId, Guid scopeId, ScopePermission permission)
+    {
+        // Admin bypass: Admins have all scope permissions
+        if (await IsAdminAsync(userId))
+        {
+            return true;
+        }
+
+        return await _projectUserRepository.HasScopePermissionAsync(userId, scopeId, permission);
+    }
+
+    public async Task<Dictionary<Guid, List<ScopePermission>>> GetUserScopePermissionsAsync(Guid userId, Guid projectId)
+    {
+        // Admin bypass: Admins have all permissions for all scopes
+        if (await IsAdminAsync(userId))
+        {
+            var scopes = await _scopeRepository.GetByProjectIdAsync(projectId);
+            var allScopePermissions = Enum.GetValues<ScopePermission>().ToList();
+
+            return scopes.ToDictionary(
+                scope => scope.Id,
+                scope => allScopePermissions
+            );
+        }
+
+        return await _projectUserRepository.GetUserScopePermissionsAsync(userId, projectId);
+    }
+
+    #endregion
 }

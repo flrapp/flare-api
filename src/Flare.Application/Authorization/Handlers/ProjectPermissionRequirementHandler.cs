@@ -7,12 +7,12 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Flare.Application.Authorization.Handlers;
 
-public class ProjectAccessRequirementHandler : AuthorizationHandler<ProjectAccessRequirement>
+public class ProjectPermissionRequirementHandler : AuthorizationHandler<ProjectPermissionRequirement>
 {
     private readonly IPermissionService _permissionService;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public ProjectAccessRequirementHandler(
+    public ProjectPermissionRequirementHandler(
         IPermissionService permissionService,
         IHttpContextAccessor httpContextAccessor)
     {
@@ -22,10 +22,10 @@ public class ProjectAccessRequirementHandler : AuthorizationHandler<ProjectAcces
 
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
-        ProjectAccessRequirement requirement)
+        ProjectPermissionRequirement requirement)
     {
         var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !Guid.TryParse((string?)userIdClaim.Value, out var userId))
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
         {
             return;
         }
@@ -36,12 +36,13 @@ public class ProjectAccessRequirementHandler : AuthorizationHandler<ProjectAcces
             return;
         }
 
-        var hasAccess = await _permissionService.HasProjectAccessAsync(
+        // Check if user has the required permission (with admin bypass)
+        var hasPermission = await _permissionService.HasProjectPermissionAsync(
             userId,
             projectId.Value,
-            requirement.MinimumRole);
+            requirement.Permission);
 
-        if (hasAccess)
+        if (hasPermission)
         {
             context.Succeed(requirement);
         }
@@ -56,17 +57,20 @@ public class ProjectAccessRequirementHandler : AuthorizationHandler<ProjectAcces
         }
 
         var routeData = httpContext.GetRouteData();
+
+        // Try to get projectId from route values
         if (routeData?.Values.TryGetValue("projectId", out var projectIdValue) == true)
         {
-            if (Guid.TryParse((string?)projectIdValue?.ToString(), out var projectId))
+            if (Guid.TryParse(projectIdValue?.ToString(), out var projectId))
             {
                 return projectId;
             }
         }
 
+        // Try to get projectId from query string
         if (httpContext.Request.Query.TryGetValue("projectId", out var queryProjectId))
         {
-            if (Guid.TryParse(Enumerable.FirstOrDefault<string?>(queryProjectId), out var projectId))
+            if (Guid.TryParse(queryProjectId.FirstOrDefault(), out var projectId))
             {
                 return projectId;
             }

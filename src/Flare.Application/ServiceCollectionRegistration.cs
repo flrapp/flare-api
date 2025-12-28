@@ -12,15 +12,19 @@ public static class ServiceCollectionRegistration
     {
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IScopeService, ScopeService>();
+        services.AddScoped<IFeatureFlagService, FeatureFlagService>();
+        services.AddScoped<IProjectUserService, ProjectUserService>();
         return services;
     }
     
     public static IServiceCollection AddAuthorizationHandler(this IServiceCollection services)
     {
         services.AddScoped<IAuthorizationHandler, AdminRequirementHandler>();
-        services.AddScoped<IAuthorizationHandler, ProjectAccessRequirementHandler>();
-        services.AddScoped<IAuthorizationHandler, ProjectOwnerRequirementHandler>();
-        
+        services.AddScoped<IAuthorizationHandler, ProjectPermissionRequirementHandler>();
+        services.AddScoped<IAuthorizationHandler, ScopePermissionRequirementHandler>();
+
         return services;
     }
 }
