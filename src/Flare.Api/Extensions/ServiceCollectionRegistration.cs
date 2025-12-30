@@ -41,14 +41,27 @@ public static class ServiceCollectionRegistration
             options.AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
                 policy.Requirements.Add(new AdminRequirement()));
 
-            options.AddPolicy(AuthorizationPolicies.ProjectViewer, policy =>
-                policy.Requirements.Add(new ProjectAccessRequirement(ProjectRole.Viewer)));
+            // Project-level permission policies
+            options.AddPolicy(AuthorizationPolicies.ManageProjectSettings, policy =>
+                policy.Requirements.Add(new ProjectPermissionRequirement(ProjectPermission.ManageProjectSettings)));
+            options.AddPolicy(AuthorizationPolicies.ManageUsers, policy =>
+                policy.Requirements.Add(new ProjectPermissionRequirement(ProjectPermission.ManageUsers)));
+            options.AddPolicy(AuthorizationPolicies.ManageScopes, policy =>
+                policy.Requirements.Add(new ProjectPermissionRequirement(ProjectPermission.ManageScopes)));
+            options.AddPolicy(AuthorizationPolicies.ManageFeatureFlags, policy =>
+                policy.Requirements.Add(new ProjectPermissionRequirement(ProjectPermission.ManageFeatureFlags)));
+            options.AddPolicy(AuthorizationPolicies.ViewApiKey, policy =>
+                policy.Requirements.Add(new ProjectPermissionRequirement(ProjectPermission.ViewApiKey)));
+            options.AddPolicy(AuthorizationPolicies.RegenerateApiKey, policy =>
+                policy.Requirements.Add(new ProjectPermissionRequirement(ProjectPermission.RegenerateApiKey)));
+            options.AddPolicy(AuthorizationPolicies.DeleteProject, policy =>
+                policy.Requirements.Add(new ProjectPermissionRequirement(ProjectPermission.DeleteProject)));
 
-            options.AddPolicy(AuthorizationPolicies.ProjectEditor, policy =>
-                policy.Requirements.Add(new ProjectAccessRequirement(ProjectRole.Editor)));
-
-            options.AddPolicy(AuthorizationPolicies.ProjectOwner, policy =>
-                policy.Requirements.Add(new ProjectOwnerRequirement()));
+            // Scope-level permission policies
+            options.AddPolicy(AuthorizationPolicies.ReadFeatureFlags, policy =>
+                policy.Requirements.Add(new ScopePermissionRequirement(ScopePermission.ReadFeatureFlags)));
+            options.AddPolicy(AuthorizationPolicies.UpdateFeatureFlags, policy =>
+                policy.Requirements.Add(new ScopePermissionRequirement(ScopePermission.UpdateFeatureFlags)));
         });
 
         return services;

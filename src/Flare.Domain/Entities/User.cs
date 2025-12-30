@@ -13,5 +13,5 @@ public class User
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
 
-    public ICollection<ProjectMember> ProjectMemberships { get; set; } = new List<ProjectMember>();
+    public ICollection<ProjectUser> ProjectMemberships { get; set; } = new List<ProjectUser>();
 }

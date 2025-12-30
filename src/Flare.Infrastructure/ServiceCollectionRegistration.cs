@@ -17,6 +17,10 @@ public static class ServiceCollectionRegistration
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
+        services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<IScopeRepository, ScopeRepository>();
+        services.AddScoped<IFeatureFlagRepository, FeatureFlagRepository>();
+        services.AddScoped<IProjectUserRepository, ProjectUserRepository>();
 
         return services;
     }
