@@ -13,4 +13,5 @@ public interface IProjectService
     Task<RegenerateApiKeyResponseDto> RegenerateApiKeyAsync(Guid projectId, Guid currentUserId);
     Task ArchiveAsync(Guid projectId, Guid currentUserId);
     Task UnarchiveAsync(Guid projectId, Guid currentUserId);
+    Task<MyPermissionsResponseDto> GetMyPermissionsAsync(Guid projectId, Guid currentUserId);
 }

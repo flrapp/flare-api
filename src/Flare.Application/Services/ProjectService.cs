@@ -295,6 +295,34 @@ public class ProjectService : IProjectService
         await _projectRepository.UpdateAsync(project);
     }
 
+    public async Task<MyPermissionsResponseDto> GetMyPermissionsAsync(Guid projectId, Guid currentUserId)
+    {
+        // Check if project exists
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
+        {
+            throw new NotFoundException("Project not found.");
+        }
+
+        // Check if user is a project member
+        if (!await _permissionService.IsProjectMemberAsync(currentUserId, projectId))
+        {
+            throw new ForbiddenException("You are not a member of this project.");
+        }
+
+        // Get user's project and scope permissions
+        var projectPermissions = await _permissionService.GetUserProjectPermissionsAsync(currentUserId, projectId);
+        var scopePermissions = await _permissionService.GetUserScopePermissionsAsync(currentUserId, projectId);
+
+        return new MyPermissionsResponseDto
+        {
+            UserId = currentUserId,
+            ProjectId = projectId,
+            ProjectPermissions = projectPermissions,
+            ScopePermissions = scopePermissions
+        };
+    }
+
     #region Helper Methods
 
     private static string GenerateAlias(string name)
