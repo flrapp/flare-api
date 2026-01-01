@@ -165,4 +165,27 @@ public class ProjectsController : ControllerBase
 
         return NoContent();
     }
+
+    /// <summary>
+    /// Gets the current authenticated user's permissions for the specified project.
+    /// </summary>
+    /// <param name="projectId">The unique identifier of the project.</param>
+    /// <returns>The user's project-level and scope-level permissions.</returns>
+    /// <response code="200">Returns the user's permissions for the project.</response>
+    /// <response code="401">User is not authenticated.</response>
+    /// <response code="403">User is not a member of the project.</response>
+    /// <response code="404">Project not found.</response>
+    [HttpGet("{projectId}/my-permissions")]
+    [Authorize]
+    [ProducesResponseType(typeof(MyPermissionsResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MyPermissionsResponseDto>> GetMyPermissions(Guid projectId)
+    {
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _projectService.GetMyPermissionsAsync(projectId, userId);
+
+        return Ok(result);
+    }
 }
