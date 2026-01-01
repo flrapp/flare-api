@@ -13,7 +13,7 @@ public static class ServiceCollectionRegistration
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")).UseSnakeCaseNamingConvention());
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
