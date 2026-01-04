@@ -68,9 +68,6 @@ public class FeatureFlagService : IFeatureFlagService
 
         try
         {
-            await _featureFlagRepository.AddAsync(featureFlag);
-
-            // Create FeatureFlagValue for ALL scopes in project with DefaultValue
             var scopes = await _scopeRepository.GetByProjectIdAsync(projectId);
             foreach (var scope in scopes)
             {
@@ -79,16 +76,14 @@ public class FeatureFlagService : IFeatureFlagService
                     Id = Guid.NewGuid(),
                     FeatureFlagId = featureFlag.Id,
                     ScopeId = scope.Id,
-                    IsEnabled = dto.DefaultValue,
+                    IsEnabled = false,
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                // Add the value to the feature flag's collection
                 featureFlag.Values.Add(featureFlagValue);
             }
 
-            // Save changes
-            await _featureFlagRepository.UpdateAsync(featureFlag);
+            await _featureFlagRepository.AddAsync(featureFlag);
 
             return await MapToResponseDtoAsync(featureFlag);
         }

@@ -34,7 +34,8 @@ public class AuthService : IAuthService
             UserId = user.Id,
             Username = user.Username,
             FullName = user.FullName,
-            GlobalRole = user.GlobalRole
+            GlobalRole = user.GlobalRole,
+            MustChangePassword = user.MustChangePassword
         };
     }
 
@@ -65,7 +66,8 @@ public class AuthService : IAuthService
             UserId = user.Id,
             Username = user.Username,
             FullName = user.FullName,
-            GlobalRole = user.GlobalRole
+            GlobalRole = user.GlobalRole,
+            MustChangePassword = user.MustChangePassword
         };
     }
 
@@ -87,6 +89,26 @@ public class AuthService : IAuthService
             user.LastLoginAt = DateTime.UtcNow;
             await _userRepository.UpdateAsync(user);
         }
+    }
+
+    public async Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+
+        if (user == null)
+        {
+            throw new InvalidOperationException("User not found");
+        }
+
+        if (!VerifyPassword(dto.CurrentPassword, user.PasswordHash))
+        {
+            throw new InvalidOperationException("Current password is incorrect");
+        }
+
+        user.PasswordHash = HashPassword(dto.NewPassword);
+        user.MustChangePassword = false;
+
+        await _userRepository.UpdateAsync(user);
     }
 
     public string HashPassword(string password)

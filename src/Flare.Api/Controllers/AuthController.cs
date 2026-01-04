@@ -136,7 +136,8 @@ public class AuthController : ControllerBase
                 UserId = user.Id,
                 Username = user.Username,
                 FullName = user.FullName,
-                GlobalRole = user.GlobalRole
+                GlobalRole = user.GlobalRole,
+                MustChangePassword = user.MustChangePassword
             };
 
             return Ok(result);
@@ -145,6 +146,44 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving current user");
             return BadRequest(new { message = "Failed to retrieve user information" });
+        }
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var userId = HttpContext.GetCurrentUserId();
+
+            if (userId == null)
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+
+            await _authService.ChangePasswordAsync(userId.Value, dto);
+
+            _logger.LogInformation("User {UserId} changed password successfully", userId.Value);
+
+            return Ok(new { message = "Password changed successfully" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Password change failed for user: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error changing password");
+            return BadRequest(new { message = "Password change failed. Please try again." });
         }
     }
 }

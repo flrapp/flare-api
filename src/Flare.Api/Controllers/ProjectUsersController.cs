@@ -14,12 +14,28 @@ namespace Flare.Api.Controllers;
 public class ProjectUsersController : ControllerBase
 {
     private readonly IProjectUserService _projectUserService;
+    private readonly IUserService _userService;
     private readonly ILogger<ProjectUsersController> _logger;
 
-    public ProjectUsersController(IProjectUserService projectUserService, ILogger<ProjectUsersController> logger)
+    public ProjectUsersController(
+        IProjectUserService projectUserService,
+        IUserService userService,
+        ILogger<ProjectUsersController> logger)
     {
         _projectUserService = projectUserService;
+        _userService = userService;
         _logger = logger;
+    }
+
+    [HttpGet("available")]
+    [Authorize]
+    [ProducesResponseType(typeof(List<AvailableUserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<List<AvailableUserDto>>> GetAvailableUsers(Guid projectId)
+    {
+        var users = await _userService.GetAvailableUsersForProjectAsync(projectId);
+        return Ok(users);
     }
 
     [HttpPost]
@@ -208,6 +224,37 @@ public class ProjectUsersController : ControllerBase
         {
             _logger.LogError(ex, "Error revoking scope permission {Permission} from user {UserId} for scope {ScopeId} in project {ProjectId}",
                 permission, userId, scopeId, projectId);
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("{userId}/permissions")]
+    [Authorize]
+    [ProducesResponseType(typeof(ProjectUserResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectUserResponseDto>> UpdateUserPermissions(Guid projectId, Guid userId, [FromBody] UpdateUserPermissionsDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var currentUserId = HttpContext.GetCurrentUserId()!.Value;
+            var result = await _projectUserService.UpdateUserPermissionsAsync(projectId, userId, dto, currentUserId);
+
+            _logger.LogInformation("Permissions updated for user {UserId} in project {ProjectId} by user {CurrentUserId}",
+                userId, projectId, currentUserId);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating permissions for user {UserId} in project {ProjectId}", userId, projectId);
             return BadRequest(new { message = ex.Message });
         }
     }

@@ -10,6 +10,7 @@ public interface IAuthService
     Task<User?> GetUserByIdAsync(Guid userId);
     Task<User?> GetUserByUsernameAsync(string username);
     Task UpdateLastLoginAsync(Guid userId);
+    Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto);
     string HashPassword(string password);
     bool VerifyPassword(string password, string passwordHash);
 }

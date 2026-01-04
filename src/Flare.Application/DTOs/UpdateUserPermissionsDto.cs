@@ -1,13 +1,9 @@
-using System.ComponentModel.DataAnnotations;
 using Flare.Domain.Enums;
 
 namespace Flare.Application.DTOs;
 
-public class InviteUserDto
+public class UpdateUserPermissionsDto
 {
-    [Required]
-    public Guid UserId { get; set; }
-
     public List<ProjectPermission> ProjectPermissions { get; set; } = new();
     public Dictionary<Guid, List<ScopePermission>> ScopePermissions { get; set; } = new();
 }

@@ -11,4 +11,6 @@ public interface IUserRepository
     Task UpdateAsync(User user);
     Task<User?> GetActiveByIdAsync(Guid userId);
     Task<User?> GetActiveByUsernameAsync(string username);
+    Task<List<User>> GetAllAsync();
+    Task<List<User>> GetAllActiveUsersAsync();
 }

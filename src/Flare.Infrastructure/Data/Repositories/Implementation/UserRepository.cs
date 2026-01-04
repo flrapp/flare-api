@@ -54,4 +54,19 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
     }
+
+    public async Task<List<User>> GetAllAsync()
+    {
+        return await _context.Users
+            .OrderBy(u => u.Username)
+            .ToListAsync();
+    }
+
+    public async Task<List<User>> GetAllActiveUsersAsync()
+    {
+        return await _context.Users
+            .Where(u => u.IsActive)
+            .OrderBy(u => u.Username)
+            .ToListAsync();
+    }
 }

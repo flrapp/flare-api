@@ -38,6 +38,17 @@ public class Startup
         services.AddHttpContextAccessor();
         services.AddControllers();
 
+        services.AddCors(options =>
+        {
+            options.AddPolicy("LocalhostPolicy", builder =>
+            {
+                builder.WithOrigins("http://localhost:3000")
+                       .AllowAnyMethod()
+                       .AllowAnyHeader()
+                       .AllowCredentials();
+            });
+        });
+
         services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -58,6 +69,7 @@ public class Startup
         app.UseExceptionHandler();
 
         app.UseHttpsRedirection();
+        app.UseCors("LocalhostPolicy");
         app.UseRouting();
 
         app.UseAuthentication();

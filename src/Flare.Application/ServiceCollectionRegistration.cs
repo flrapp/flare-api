@@ -11,6 +11,7 @@ public static class ServiceCollectionRegistration
     public static IServiceCollection AddServices(this IServiceCollection services)
     {
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IScopeService, ScopeService>();
