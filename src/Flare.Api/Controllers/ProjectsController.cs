@@ -36,8 +36,6 @@ public class ProjectsController : ControllerBase
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _projectService.CreateAsync(dto, userId);
 
-        _logger.LogInformation("Project {ProjectId} created by user {UserId}", result.Id, userId);
-
         return CreatedAtAction(nameof(GetProject), new { projectId = result.Id }, result);
     }
 

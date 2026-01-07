@@ -3,6 +3,7 @@ namespace Flare.Domain.Entities;
 public class Scope
 {
     public Guid Id { get; set; }
+    public int Index { get; set; }
     public Guid ProjectId { get; set; }
     public Project Project { get; set; } = null!;
     public string Alias { get; set; } = string.Empty;

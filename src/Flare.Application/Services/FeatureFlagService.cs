@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
 using Flare.Domain.Entities;
@@ -30,36 +29,25 @@ public class FeatureFlagService : IFeatureFlagService
 
     public async Task<FeatureFlagResponseDto> CreateAsync(Guid projectId, CreateFeatureFlagDto dto, Guid currentUserId)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageFeatureFlags))
         {
             throw new ForbiddenException("You do not have permission to create feature flags in this project.");
         }
 
-        // Verify project exists
         var projectExists = await _projectRepository.ExistsByIdAsync(projectId);
         if (!projectExists)
         {
             throw new NotFoundException("Project not found.");
         }
-
-        // Generate key from name
-        var key = GenerateKey(dto.Name);
-
-        // Ensure key is unique within project
-        var counter = 1;
-        var originalKey = key;
-        while (await _featureFlagRepository.ExistsByProjectAndKeyAsync(projectId, key))
-        {
-            key = $"{originalKey}_{counter}";
-            counter++;
-        }
+        
+        if(await _featureFlagRepository.ExistsByProjectAndKeyAsync(projectId, dto.Key))
+            throw new InvalidOperationException("Feature flag with this key already exists in this project.");
 
         var featureFlag = new FeatureFlag
         {
             Id = Guid.NewGuid(),
             ProjectId = projectId,
-            Key = key,
+            Key = dto.Key,
             Name = dto.Name,
             Description = dto.Description,
             CreatedAt = DateTime.UtcNow,
@@ -101,31 +89,17 @@ public class FeatureFlagService : IFeatureFlagService
             throw new NotFoundException("Feature flag not found.");
         }
 
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, featureFlag.ProjectId, ProjectPermission.ManageFeatureFlags))
         {
             throw new ForbiddenException("You do not have permission to update feature flags in this project.");
         }
-
-        // If name changed, regenerate key
-        if (featureFlag.Name != dto.Name)
-        {
-            var key = GenerateKey(dto.Name);
-
-            // Ensure key is unique within project (excluding current feature flag)
-            var counter = 1;
-            var originalKey = key;
-            while (await _featureFlagRepository.ExistsByProjectAndKeyExcludingIdAsync(featureFlag.ProjectId, key, featureFlagId))
-            {
-                key = $"{originalKey}_{counter}";
-                counter++;
-            }
-
-            featureFlag.Key = key;
-        }
-
+        
+        if(await _featureFlagRepository.ExistsByProjectAndKeyAsync(featureFlag.ProjectId, featureFlag.Key))
+            throw new InvalidOperationException("Feature flag with this key already exists in this project.");
+        
         featureFlag.Name = dto.Name;
         featureFlag.Description = dto.Description;
+        featureFlag.Key = dto.Key;
         featureFlag.UpdatedAt = DateTime.UtcNow;
 
         try
@@ -262,26 +236,6 @@ public class FeatureFlagService : IFeatureFlagService
     }
 
     #region Helper Methods
-
-    private static string GenerateKey(string name)
-    {
-        // Convert to uppercase
-        var key = name.ToUpperInvariant();
-
-        // Replace spaces and special characters with underscores
-        key = Regex.Replace(key, @"[^A-Z0-9]+", "_");
-
-        // Remove leading/trailing underscores
-        key = key.Trim('_');
-
-        // Limit length to 100 characters
-        if (key.Length > 100)
-        {
-            key = key.Substring(0, 100).TrimEnd('_');
-        }
-
-        return key;
-    }
 
     private async Task<FeatureFlagResponseDto> MapToResponseDtoAsync(FeatureFlag featureFlag)
     {

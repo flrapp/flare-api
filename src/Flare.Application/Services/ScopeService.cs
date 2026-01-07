@@ -42,7 +42,9 @@ public class ScopeService : IScopeService
         {
             throw new NotFoundException("Project not found.");
         }
-
+        
+        var projectScopes = await _scopeRepository.GetByProjectIdAsync(projectId);
+        var index = projectScopes.Any() ? projectScopes.MaxBy(x => x.Index)!.Index : 0;
         // Generate alias from name
         var alias = GenerateAlias(dto.Name);
 
@@ -62,7 +64,8 @@ public class ScopeService : IScopeService
             Alias = alias,
             Name = dto.Name,
             Description = dto.Description,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Index = index
         };
 
         try

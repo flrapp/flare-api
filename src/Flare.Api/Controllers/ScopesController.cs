@@ -38,9 +38,6 @@ public class ScopesController : ControllerBase
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _scopeService.CreateAsync(projectId, dto, userId);
 
-        _logger.LogInformation("Scope {ScopeId} created in project {ProjectId} by user {UserId}",
-            result.Id, projectId, userId);
-
         return CreatedAtAction(nameof(GetScope), new { scopeId = result.Id }, result);
     }
 
@@ -87,8 +84,6 @@ public class ScopesController : ControllerBase
         }
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _scopeService.UpdateAsync(scopeId, dto, userId);
-
-        _logger.LogInformation("Scope {ScopeId} updated by user {UserId}", scopeId, userId);
 
         return Ok(result);
     }

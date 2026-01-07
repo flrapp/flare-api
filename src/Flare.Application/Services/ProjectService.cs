@@ -70,7 +70,6 @@ public class ProjectService : IProjectService
         {
             await _projectRepository.AddAsync(project);
 
-            // Create default scopes: dev, staging, production
             var defaultScopes = new List<Scope>
             {
                 new Scope
@@ -80,7 +79,8 @@ public class ProjectService : IProjectService
                     Alias = "dev",
                     Name = "Development",
                     Description = "Development environment",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    Index = 0
                 },
                 new Scope
                 {
@@ -89,7 +89,8 @@ public class ProjectService : IProjectService
                     Alias = "staging",
                     Name = "Staging",
                     Description = "Staging environment",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    Index = 1
                 },
                 new Scope
                 {
@@ -98,7 +99,8 @@ public class ProjectService : IProjectService
                     Alias = "production",
                     Name = "Production",
                     Description = "Production environment",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    Index = 2
                 }
             };
 

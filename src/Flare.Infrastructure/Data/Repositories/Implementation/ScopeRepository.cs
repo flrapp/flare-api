@@ -36,7 +36,7 @@ public class ScopeRepository : IScopeRepository
     {
         return await _context.Scopes
             .Where(s => s.ProjectId == projectId)
-            .OrderBy(s => s.CreatedAt)
+            .OrderBy(s => s.Index)
             .ToListAsync();
     }
 

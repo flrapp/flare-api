@@ -37,8 +37,6 @@ public class UserController : ControllerBase
         var currentUserId = HttpContext.GetCurrentUserId()!.Value;
         var user = await _userService.CreateUserAsync(dto, currentUserId);
 
-        _logger.LogInformation("User {Username} created successfully by admin {AdminId}", dto.Username, currentUserId);
-
         return CreatedAtAction(nameof(GetUserById), new { userId = user.UserId }, user);
     }
 
@@ -71,9 +69,6 @@ public class UserController : ControllerBase
         }
 
         var user = await _userService.UpdateUserAsync(userId, dto);
-
-        var currentUserId = HttpContext.GetCurrentUserId()!.Value;
-        _logger.LogInformation("User {UserId} updated successfully by admin {AdminId}", userId, currentUserId);
 
         return Ok(user);
     }
