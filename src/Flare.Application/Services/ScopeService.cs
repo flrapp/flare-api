@@ -1,11 +1,13 @@
 using System.Text.RegularExpressions;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
+using Flare.Domain.Constants;
 using Flare.Domain.Entities;
 using Flare.Domain.Enums;
 using Flare.Domain.Exceptions;
 using Flare.Infrastructure.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Flare.Application.Services;
 
@@ -15,17 +17,20 @@ public class ScopeService : IScopeService
     private readonly IProjectRepository _projectRepository;
     private readonly IProjectUserRepository _projectUserRepository;
     private readonly IPermissionService _permissionService;
+    private readonly HybridCache _hybridCache;
 
     public ScopeService(
         IScopeRepository scopeRepository,
         IProjectRepository projectRepository,
         IProjectUserRepository projectUserRepository,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        HybridCache hybridCache)
     {
         _scopeRepository = scopeRepository;
         _projectRepository = projectRepository;
         _projectUserRepository = projectUserRepository;
         _permissionService = permissionService;
+        _hybridCache = hybridCache;
     }
 
     public async Task<ScopeResponseDto> CreateAsync(Guid projectId, CreateScopeDto dto, Guid currentUserId)
@@ -81,7 +86,7 @@ public class ScopeService : IScopeService
 
     public async Task<ScopeResponseDto> UpdateAsync(Guid scopeId, UpdateScopeDto dto, Guid currentUserId)
     {
-        var scope = await _scopeRepository.GetByIdAsync(scopeId);
+        var scope = await _scopeRepository.GetByIdWithProjectAsync(scopeId);
         if (scope == null)
         {
             throw new NotFoundException("Scope not found.");
@@ -93,29 +98,16 @@ public class ScopeService : IScopeService
             throw new ForbiddenException("You do not have permission to update scopes in this project.");
         }
 
-        // If name changed, regenerate alias
-        if (scope.Name != dto.Name)
-        {
-            var alias = GenerateAlias(dto.Name);
-
-            // Ensure alias is unique within project (excluding current scope)
-            var counter = 1;
-            var originalAlias = alias;
-            while (await _scopeRepository.ExistsByProjectAndAliasExcludingIdAsync(scope.ProjectId, alias, scopeId))
-            {
-                alias = $"{originalAlias}-{counter}";
-                counter++;
-            }
-
-            scope.Alias = alias;
-        }
-
+        var previousAlias = scope.Alias;
+        scope.Alias = dto.Alias;
         scope.Name = dto.Name;
         scope.Description = dto.Description;
 
         try
         {
             await _scopeRepository.UpdateAsync(scope);
+            var scopeTag = CacheKeys.ProjectScopeCacheTag(scope.Project.Alias, previousAlias);
+            await _hybridCache.RemoveByTagAsync(scopeTag);
             return MapToResponseDto(scope);
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
@@ -126,7 +118,7 @@ public class ScopeService : IScopeService
 
     public async Task DeleteAsync(Guid scopeId, Guid currentUserId)
     {
-        var scope = await _scopeRepository.GetByIdAsync(scopeId);
+        var scope = await _scopeRepository.GetByIdWithProjectAsync(scopeId);
         if (scope == null)
         {
             throw new NotFoundException("Scope not found.");
@@ -142,6 +134,8 @@ public class ScopeService : IScopeService
         await _projectUserRepository.RemoveAllScopePermissionsForScopeAsync(scopeId);
 
         await _scopeRepository.DeleteAsync(scopeId);
+        var scopeTag = CacheKeys.ProjectScopeCacheTag(scope.Project.Alias, scope.Alias);
+        await _hybridCache.RemoveByTagAsync(scopeTag);
     }
 
     public async Task<ScopeResponseDto> GetByIdAsync(Guid scopeId, Guid currentUserId)

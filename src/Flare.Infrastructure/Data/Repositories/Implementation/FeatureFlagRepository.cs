@@ -18,6 +18,15 @@ public class FeatureFlagRepository : IFeatureFlagRepository
         return await _context.FeatureFlags.FindAsync(featureFlagId);
     }
 
+    public async Task<FeatureFlag?> GetByIdWithScopesAndProjectAsync(Guid featureFlagId)
+    {
+        return await _context.FeatureFlags
+            .Include(ff => ff.Project)
+            .ThenInclude(p => p.Scopes)
+            .Where(f => f.Id == featureFlagId)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<FeatureFlag?> GetByIdWithValuesAsync(Guid featureFlagId)
     {
         return await _context.FeatureFlags

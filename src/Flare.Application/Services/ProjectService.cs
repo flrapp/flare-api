@@ -2,11 +2,13 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
+using Flare.Domain.Constants;
 using Flare.Domain.Entities;
 using Flare.Domain.Enums;
 using Flare.Domain.Exceptions;
 using Flare.Infrastructure.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Flare.Application.Services;
 
@@ -16,17 +18,20 @@ public class ProjectService : IProjectService
     private readonly IScopeRepository _scopeRepository;
     private readonly IProjectUserRepository _projectUserRepository;
     private readonly IPermissionService _permissionService;
+    private readonly HybridCache _hybridCache;
 
     public ProjectService(
         IProjectRepository projectRepository,
         IScopeRepository scopeRepository,
         IProjectUserRepository projectUserRepository,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        HybridCache hybridCache)
     {
         _projectRepository = projectRepository;
         _scopeRepository = scopeRepository;
         _projectUserRepository = projectUserRepository;
         _permissionService = permissionService;
+        _hybridCache = hybridCache;
     }
 
     public async Task<ProjectDetailResponseDto> CreateAsync(CreateProjectDto dto, Guid creatorUserId)
@@ -149,6 +154,8 @@ public class ProjectService : IProjectService
             throw new NotFoundException("Project not found.");
         }
 
+        var previousAlias = project.Alias;
+        project.Alias = dto.Alias;
         project.Name = dto.Name;
         project.Description = dto.Description;
         project.UpdatedAt = DateTime.UtcNow;
@@ -156,6 +163,7 @@ public class ProjectService : IProjectService
         try
         {
             await _projectRepository.UpdateAsync(project);
+            await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(previousAlias));
             return await MapToDetailResponseDto(project, currentUserId, true);
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
@@ -179,6 +187,7 @@ public class ProjectService : IProjectService
         }
 
         await _projectRepository.DeleteAsync(projectId);
+        await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(project.Alias));
     }
 
     public async Task<ProjectDetailResponseDto> GetByIdAsync(Guid projectId, Guid currentUserId)
@@ -239,6 +248,7 @@ public class ProjectService : IProjectService
         project.UpdatedAt = DateTime.UtcNow;
 
         await _projectRepository.UpdateAsync(project);
+        await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(project.Alias));
 
         return new RegenerateApiKeyResponseDto
         {

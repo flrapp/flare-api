@@ -1,10 +1,12 @@
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
+using Flare.Domain.Constants;
 using Flare.Domain.Entities;
 using Flare.Domain.Enums;
 using Flare.Domain.Exceptions;
 using Flare.Infrastructure.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Flare.Application.Services;
 
@@ -14,17 +16,20 @@ public class FeatureFlagService : IFeatureFlagService
     private readonly IProjectRepository _projectRepository;
     private readonly IScopeRepository _scopeRepository;
     private readonly IPermissionService _permissionService;
+    private readonly HybridCache _hybridCache;
 
     public FeatureFlagService(
         IFeatureFlagRepository featureFlagRepository,
         IProjectRepository projectRepository,
         IScopeRepository scopeRepository,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        HybridCache hybridCache)
     {
         _featureFlagRepository = featureFlagRepository;
         _projectRepository = projectRepository;
         _scopeRepository = scopeRepository;
         _permissionService = permissionService;
+        _hybridCache = hybridCache;
     }
 
     public async Task<FeatureFlagResponseDto> CreateAsync(Guid projectId, CreateFeatureFlagDto dto, Guid currentUserId)
@@ -83,7 +88,7 @@ public class FeatureFlagService : IFeatureFlagService
 
     public async Task<FeatureFlagResponseDto> UpdateAsync(Guid featureFlagId, UpdateFeatureFlagDto dto, Guid currentUserId)
     {
-        var featureFlag = await _featureFlagRepository.GetByIdAsync(featureFlagId);
+        var featureFlag = await _featureFlagRepository.GetByIdWithScopesAndProjectAsync(featureFlagId);
         if (featureFlag == null)
         {
             throw new NotFoundException("Feature flag not found.");
@@ -99,12 +104,15 @@ public class FeatureFlagService : IFeatureFlagService
         
         featureFlag.Name = dto.Name;
         featureFlag.Description = dto.Description;
+        var previousKey = featureFlag.Key;
         featureFlag.Key = dto.Key;
         featureFlag.UpdatedAt = DateTime.UtcNow;
 
         try
         {
             await _featureFlagRepository.UpdateAsync(featureFlag);
+            var projectFeatureFlagTag = CacheKeys.FeatureFlagProjectCacheTag(featureFlag.Project.Alias, previousKey);
+            await _hybridCache.RemoveByTagAsync(projectFeatureFlagTag);
             return await MapToResponseDtoAsync(featureFlag);
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
@@ -115,7 +123,7 @@ public class FeatureFlagService : IFeatureFlagService
 
     public async Task DeleteAsync(Guid featureFlagId, Guid currentUserId)
     {
-        var featureFlag = await _featureFlagRepository.GetByIdAsync(featureFlagId);
+        var featureFlag = await _featureFlagRepository.GetByIdWithScopesAndProjectAsync(featureFlagId);
         if (featureFlag == null)
         {
             throw new NotFoundException("Feature flag not found.");
@@ -128,6 +136,8 @@ public class FeatureFlagService : IFeatureFlagService
         }
 
         await _featureFlagRepository.DeleteAsync(featureFlagId);
+        var projectFeatureFlagTag = CacheKeys.FeatureFlagProjectCacheTag(featureFlag.Project.Alias, featureFlag.Key);
+        await _hybridCache.RemoveByTagAsync(projectFeatureFlagTag);
     }
 
     public async Task<FeatureFlagResponseDto> GetByIdAsync(Guid featureFlagId, Guid currentUserId)
@@ -173,7 +183,7 @@ public class FeatureFlagService : IFeatureFlagService
 
     public async Task<FeatureFlagValueDto> UpdateValueAsync(Guid featureFlagId, UpdateFeatureFlagValueDto dto, Guid currentUserId)
     {
-        var featureFlag = await _featureFlagRepository.GetByIdWithValuesAsync(featureFlagId);
+        var featureFlag = await _featureFlagRepository.GetByIdWithScopesAndProjectAsync(featureFlagId);
         if (featureFlag == null)
         {
             throw new NotFoundException("Feature flag not found.");
@@ -223,6 +233,8 @@ public class FeatureFlagService : IFeatureFlagService
 
         featureFlag.UpdatedAt = DateTime.UtcNow;
         await _featureFlagRepository.UpdateAsync(featureFlag);
+        var cacheKey = CacheKeys.FeatureFlagCacheKey(featureFlag.Project.Alias, featureFlagValue.Scope.Alias, featureFlag.Key);
+        await _hybridCache.RemoveAsync(cacheKey);
 
         return new FeatureFlagValueDto
         {
@@ -238,16 +250,26 @@ public class FeatureFlagService : IFeatureFlagService
     public async Task<GetFeatureFlagValueDto> GetFeatureFlagValueAsync(string projectAlias, string scopeAlias,
         string featureFlagKey)
     {
-        var result =
-            await _featureFlagRepository.GetByProjectScopeFlagAliasAsync(projectAlias, scopeAlias, featureFlagKey);
-        
-        if(result == null)
-            throw new NotFoundException("Feature flag not found.");
-        
-        return new GetFeatureFlagValueDto
-        {
-            Value = result.IsEnabled
-        };
+        var cacheKey = CacheKeys.FeatureFlagCacheKey(projectAlias, scopeAlias, featureFlagKey);
+        var projectFeatureFlagTag = CacheKeys.FeatureFlagProjectCacheTag(projectAlias, featureFlagKey);
+        var projectScopeTag = CacheKeys.ProjectScopeCacheTag(projectAlias, scopeAlias);
+        var result = await _hybridCache.GetOrCreateAsync(cacheKey,
+            async _ =>
+            {
+                var result =
+                    await _featureFlagRepository.GetByProjectScopeFlagAliasAsync(projectAlias, scopeAlias,
+                        featureFlagKey);
+
+                if (result == null)
+                    throw new NotFoundException("Feature flag not found.");
+
+                return new GetFeatureFlagValueDto
+                {
+                    Value = result.IsEnabled
+                };
+            },
+            tags: [projectFeatureFlagTag, projectScopeTag]);
+        return result;
     }
 
     #region Helper Methods

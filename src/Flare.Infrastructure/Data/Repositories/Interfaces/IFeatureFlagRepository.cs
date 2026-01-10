@@ -17,4 +17,6 @@ public interface IFeatureFlagRepository
 
     Task<FeatureFlagValue?> GetByProjectScopeFlagAliasAsync(string projectAlias, string scopeAlias,
         string featureFlagKey);
+
+    Task<FeatureFlag?> GetByIdWithScopesAndProjectAsync(Guid featureFlagId);
 }

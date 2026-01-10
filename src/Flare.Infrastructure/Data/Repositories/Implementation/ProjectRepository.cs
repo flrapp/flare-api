@@ -20,6 +20,7 @@ public class ProjectRepository : IProjectRepository
 
     public async Task<Project?> GetByIdWithDetailsAsync(Guid projectId)
     {
+        //TODO remove members include
         return await _context.Projects
             .Include(p => p.Scopes)
             .Include(p => p.Members)
