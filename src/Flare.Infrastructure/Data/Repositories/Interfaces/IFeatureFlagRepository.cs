@@ -14,4 +14,7 @@ public interface IFeatureFlagRepository
     Task<bool> ExistsByIdAsync(Guid featureFlagId);
     Task<bool> ExistsByProjectAndKeyAsync(Guid projectId, string key);
     Task<bool> ExistsByProjectAndKeyExcludingIdAsync(Guid projectId, string key, Guid featureFlagId);
+
+    Task<FeatureFlagValue?> GetByProjectScopeFlagAliasAsync(string projectAlias, string scopeAlias,
+        string featureFlagKey);
 }

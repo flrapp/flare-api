@@ -81,4 +81,13 @@ public class FeatureFlagRepository : IFeatureFlagRepository
         return await _context.FeatureFlags
             .AnyAsync(f => f.ProjectId == projectId && f.Key == key && f.Id != featureFlagId);
     }
+
+    public async Task<FeatureFlagValue?> GetByProjectScopeFlagAliasAsync(string projectAlias, string scopeAlias,
+        string featureFlagKey)
+    {
+        return await _context.FeatureFlagValues
+            .Where(ffv => ffv.FeatureFlag.Key == featureFlagKey && ffv.Scope.Alias == scopeAlias &&
+                          ffv.FeatureFlag.Project.Alias == projectAlias)
+            .FirstOrDefaultAsync();
+    }
 }

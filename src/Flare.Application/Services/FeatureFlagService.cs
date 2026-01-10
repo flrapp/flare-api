@@ -235,6 +235,21 @@ public class FeatureFlagService : IFeatureFlagService
         };
     }
 
+    public async Task<GetFeatureFlagValueDto> GetFeatureFlagValueAsync(string projectAlias, string scopeAlias,
+        string featureFlagKey)
+    {
+        var result =
+            await _featureFlagRepository.GetByProjectScopeFlagAliasAsync(projectAlias, scopeAlias, featureFlagKey);
+        
+        if(result == null)
+            throw new NotFoundException("Feature flag not found.");
+        
+        return new GetFeatureFlagValueDto
+        {
+            Value = result.IsEnabled
+        };
+    }
+
     #region Helper Methods
 
     private async Task<FeatureFlagResponseDto> MapToResponseDtoAsync(FeatureFlag featureFlag)

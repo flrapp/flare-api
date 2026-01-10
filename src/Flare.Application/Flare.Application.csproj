@@ -17,6 +17,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Authorization" />
         <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
         <PackageReference Include="Microsoft.AspNetCore.Routing.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     </ItemGroup>
 
 </Project>

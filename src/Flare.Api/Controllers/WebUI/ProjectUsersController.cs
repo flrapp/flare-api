@@ -6,7 +6,7 @@ using Flare.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Flare.Api.Controllers;
+namespace Flare.Api.Controllers.WebUI;
 
 [ApiController]
 [ApiVersion("1.0")]

@@ -1,5 +1,9 @@
-﻿using Flare.Application.Authorization;
+﻿using Flare.Api.Attributes;
+using Flare.Api.Filters;
+using Flare.Application.Authorization;
 using Flare.Application.Authorization.Requirements;
+using Flare.Application.Interfaces;
+using Flare.Application.Services;
 using Flare.Domain.Enums;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -64,6 +68,19 @@ public static class ServiceCollectionRegistration
                 policy.Requirements.Add(new ScopePermissionRequirement(ScopePermission.UpdateFeatureFlags)));
         });
 
+        return services;
+    }
+    
+    public static IServiceCollection ConfigureHybridCache(this IServiceCollection services)
+    {
+        services.AddHybridCache();
+        return services;
+    }
+
+    public static IServiceCollection AddProjectApiKeyAuthorisation(this IServiceCollection services)
+    {
+        services.AddScoped<ProjectApiKeyAuthorizationFilter>();
+        services.AddScoped<IApiKeyValidator, ApiKeyValidator>();
         return services;
     }
 }

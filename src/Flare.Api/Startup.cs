@@ -33,7 +33,9 @@ public class Startup
         services.AddProblemDetails();
 
         services.AddServices();
+        services.ConfigureHybridCache();
         services.AddAuthorizationHandler();
+        services.AddProjectApiKeyAuthorisation();
         services.AddApplicationAuth();
         services.AddHttpContextAccessor();
         services.AddControllers();

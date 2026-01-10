@@ -50,6 +50,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             ValidationException => (StatusCodes.Status400BadRequest, "Validation Error"),
             UnauthorizedException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Forbidden"),
+            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
         };
     }
