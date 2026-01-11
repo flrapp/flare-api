@@ -18,6 +18,11 @@ public class ScopeRepository : IScopeRepository
         return await _context.Scopes.FindAsync(scopeId);
     }
 
+    public async Task<Scope?> GetByIdWithProjectAsync(Guid scopeId)
+    {
+        return await _context.Scopes.Include(s => s.Project).FirstOrDefaultAsync(s => s.Id == scopeId);
+    }
+
     public async Task<Scope?> GetByIdWithDetailsAsync(Guid scopeId)
     {
         return await _context.Scopes

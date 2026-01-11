@@ -10,4 +10,7 @@ public interface IFeatureFlagService
     Task<FeatureFlagResponseDto> GetByIdAsync(Guid featureFlagId, Guid currentUserId);
     Task<List<FeatureFlagResponseDto>> GetByProjectIdAsync(Guid projectId, Guid currentUserId);
     Task<FeatureFlagValueDto> UpdateValueAsync(Guid featureFlagId, UpdateFeatureFlagValueDto dto, Guid currentUserId);
+
+    Task<GetFeatureFlagValueDto> GetFeatureFlagValueAsync(string projectAlias, string scopeAlias,
+        string featureFlagKey);
 }

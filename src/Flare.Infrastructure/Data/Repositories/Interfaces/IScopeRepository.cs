@@ -14,4 +14,5 @@ public interface IScopeRepository
     Task<bool> ExistsByIdAsync(Guid scopeId);
     Task<bool> ExistsByProjectAndAliasAsync(Guid projectId, string alias);
     Task<bool> ExistsByProjectAndAliasExcludingIdAsync(Guid projectId, string alias, Guid scopeId);
+    Task<Scope?> GetByIdWithProjectAsync(Guid scopeId);
 }
