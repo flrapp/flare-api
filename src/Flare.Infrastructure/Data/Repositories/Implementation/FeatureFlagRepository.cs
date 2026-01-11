@@ -27,6 +27,12 @@ public class FeatureFlagRepository : IFeatureFlagRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<FeatureFlagValue?> GetValueByFlagIdAndScopeIdAsync(Guid featureFlagId, Guid scopeId)
+    {
+        return await _context.FeatureFlagValues
+            .FirstOrDefaultAsync(ffv => ffv.FeatureFlagId == featureFlagId && ffv.ScopeId == scopeId);
+    }
+
     public async Task<FeatureFlag?> GetByIdWithValuesAsync(Guid featureFlagId)
     {
         return await _context.FeatureFlags
@@ -61,6 +67,12 @@ public class FeatureFlagRepository : IFeatureFlagRepository
     public async Task UpdateAsync(FeatureFlag featureFlag)
     {
         _context.FeatureFlags.Update(featureFlag);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateValueAsync(FeatureFlagValue featureFlagValue)
+    {
+        _context.FeatureFlagValues.Update(featureFlagValue);
         await _context.SaveChangesAsync();
     }
 

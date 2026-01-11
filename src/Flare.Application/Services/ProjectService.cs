@@ -36,16 +36,9 @@ public class ProjectService : IProjectService
 
     public async Task<ProjectDetailResponseDto> CreateAsync(CreateProjectDto dto, Guid creatorUserId)
     {
-        // Generate alias from name
-        var alias = GenerateAlias(dto.Name);
-
-        // Ensure alias is unique
-        var counter = 1;
-        var originalAlias = alias;
-        while (await _projectRepository.ExistsByAliasAsync(alias))
+        if (await _projectRepository.ExistsByAliasAsync(dto.Alias))
         {
-            alias = $"{originalAlias}-{counter}";
-            counter++;
+           throw new BadRequestException("This alias already exists");
         }
 
         // Generate API key
@@ -61,7 +54,7 @@ public class ProjectService : IProjectService
         var project = new Project
         {
             Id = Guid.NewGuid(),
-            Alias = alias,
+            Alias = dto.Alias,
             Name = dto.Name,
             Description = dto.Description,
             ApiKey = apiKey,

@@ -38,7 +38,7 @@ public class ScopesController : ControllerBase
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _scopeService.CreateAsync(projectId, dto, userId);
 
-        return CreatedAtAction(nameof(GetScope), new { scopeId = result.Id }, result);
+        return CreatedAtAction(nameof(GetScopes), new { projectId = result.ProjectId }, result);
     }
 
     [HttpGet("projects/{projectId}/scopes")]
@@ -51,20 +51,6 @@ public class ScopesController : ControllerBase
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _scopeService.GetByProjectIdAsync(projectId, userId);
-
-        return Ok(result);
-    }
-
-    [HttpGet("scopes/{scopeId}")]
-    [Authorize]
-    [ProducesResponseType(typeof(ScopeResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ScopeResponseDto>> GetScope(Guid scopeId)
-    {
-        var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _scopeService.GetByIdAsync(scopeId, userId);
 
         return Ok(result);
     }

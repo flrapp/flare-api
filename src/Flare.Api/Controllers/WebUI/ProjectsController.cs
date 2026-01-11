@@ -65,19 +65,6 @@ public class ProjectsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("by-alias/{alias}")]
-    [Authorize]
-    [ProducesResponseType(typeof(ProjectResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ProjectResponseDto>> GetProjectByAlias(string alias)
-    {
-        var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _projectService.GetByAliasAsync(alias, userId);
-
-        return Ok(result);
-    }
-
     [HttpPut("{projectId}")]
     [Authorize]
     [ProducesResponseType(typeof(ProjectDetailResponseDto), StatusCodes.Status200OK)]
