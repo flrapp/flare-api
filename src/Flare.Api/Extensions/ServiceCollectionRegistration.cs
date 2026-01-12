@@ -82,4 +82,34 @@ public static class ServiceCollectionRegistration
         services.AddScoped<IApiKeyValidator, ApiKeyValidator>();
         return services;
     }
+
+    public static IServiceCollection ConfigureCors(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    {
+        services.AddCors(options =>
+        {
+            options.AddPolicy("UiCorsPolicy", builder =>
+            {
+                if (environment.IsDevelopment())
+                {
+                    builder.AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                }
+                else
+                {
+                    var corsOrigins = configuration.GetSection("ALLOWED_ORIGINS").Get<string>();
+                    if(string.IsNullOrEmpty(corsOrigins))
+                        throw new ArgumentException("ALLOWED_ORIGINS section not found");
+
+                    Console.WriteLine($"[CORS] Allowed origins: {corsOrigins}");
+                    builder.WithOrigins(corsOrigins) 
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                }
+            });
+        });
+
+        return services;
+    }
 }

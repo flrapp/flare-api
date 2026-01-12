@@ -1,10 +1,11 @@
+using Flare.Infrastructure.Initialization;
 using Serilog;
 
 namespace Flare.Api;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
@@ -13,7 +14,15 @@ public class Program
         try
         {
             Log.Information("Starting web application");
-            CreateHostBuilder(args).Build().Run();
+            var host = CreateHostBuilder(args).Build();
+
+            using (var scope = host.Services.CreateScope())
+            {
+                var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+                await initializer.InitializeAsync();
+            }
+
+            await host.RunAsync();
         }
         catch (Exception ex)
         {
@@ -27,6 +36,11 @@ public class Program
 
     private static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
+            .ConfigureAppConfiguration((_, config) =>
+            {
+                config.AddEnvironmentVariables("FLARE_ADMIN_");
+                config.AddEnvironmentVariables("FLARE_CORS_");
+            })
             .UseSerilog((context, services, configuration) => configuration
                 .ReadFrom.Configuration(context.Configuration)
                 .ReadFrom.Services(services)
