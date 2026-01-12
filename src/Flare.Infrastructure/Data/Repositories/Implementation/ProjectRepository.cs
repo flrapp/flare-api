@@ -15,23 +15,7 @@ public class ProjectRepository : IProjectRepository
 
     public async Task<Project?> GetByIdAsync(Guid projectId)
     {
-        return await _context.Projects.FindAsync(projectId);
-    }
-
-    public async Task<Project?> GetByIdWithDetailsAsync(Guid projectId)
-    {
-        //TODO remove members include
-        return await _context.Projects
-            .Include(p => p.Scopes)
-            .Include(p => p.Members)
-                .ThenInclude(m => m.User)
-            .Include(p => p.Members)
-                .ThenInclude(m => m.ProjectPermissions)
-            .Include(p => p.Members)
-                .ThenInclude(m => m.ScopePermissions)
-            .Include(p => p.FeatureFlags)
-                .ThenInclude(f => f.Values)
-            .FirstOrDefaultAsync(p => p.Id == projectId);
+        return await _context.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
     }
 
     public async Task<Project?> GetByAliasAsync(string alias)
@@ -99,11 +83,6 @@ public class ProjectRepository : IProjectRepository
     public async Task<bool> ExistsByAliasAsync(string alias)
     {
         return await _context.Projects.AnyAsync(p => p.Alias == alias);
-    }
-
-    public async Task<bool> ExistsByAliasExcludingIdAsync(string alias, Guid projectId)
-    {
-        return await _context.Projects.AnyAsync(p => p.Alias == alias && p.Id != projectId);
     }
 
     public async Task<bool> ExistsByApiKeyAsync(string apiKey)

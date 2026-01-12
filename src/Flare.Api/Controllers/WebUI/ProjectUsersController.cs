@@ -15,16 +15,13 @@ public class ProjectUsersController : ControllerBase
 {
     private readonly IProjectUserService _projectUserService;
     private readonly IUserService _userService;
-    private readonly ILogger<ProjectUsersController> _logger;
 
     public ProjectUsersController(
         IProjectUserService projectUserService,
-        IUserService userService,
-        ILogger<ProjectUsersController> logger)
+        IUserService userService)
     {
         _projectUserService = projectUserService;
         _userService = userService;
-        _logger = logger;
     }
 
     [HttpGet("available")]
@@ -55,9 +52,6 @@ public class ProjectUsersController : ControllerBase
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _projectUserService.InviteUserAsync(projectId, dto, userId);
 
-        _logger.LogInformation("User {InvitedUserId} invited to project {ProjectId} by user {UserId}",
-            dto.UserId, projectId, userId);
-
         return CreatedAtAction(nameof(GetProjectUsers), new { projectId }, result);
     }
 
@@ -83,21 +77,10 @@ public class ProjectUsersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveUser(Guid projectId, Guid userId)
     {
-        try
-        {
-            var currentUserId = HttpContext.GetCurrentUserId()!.Value;
-            await _projectUserService.RemoveUserAsync(projectId, userId, currentUserId);
+        var currentUserId = HttpContext.GetCurrentUserId()!.Value;
+        await _projectUserService.RemoveUserAsync(projectId, userId, currentUserId);
 
-            _logger.LogInformation("User {UserId} removed from project {ProjectId} by user {CurrentUserId}",
-                userId, projectId, currentUserId);
-
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error removing user {UserId} from project {ProjectId}", userId, projectId);
-            return BadRequest(new { message = ex.Message });
-        }
+        return NoContent();
     }
 
     [HttpPut("{userId}/permissions")]
@@ -114,20 +97,9 @@ public class ProjectUsersController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        try
-        {
-            var currentUserId = HttpContext.GetCurrentUserId()!.Value;
-            var result = await _projectUserService.UpdateUserPermissionsAsync(projectId, userId, dto, currentUserId);
+        var currentUserId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _projectUserService.UpdateUserPermissionsAsync(projectId, userId, dto, currentUserId);
 
-            _logger.LogInformation("Permissions updated for user {UserId} in project {ProjectId} by user {CurrentUserId}",
-                userId, projectId, currentUserId);
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating permissions for user {UserId} in project {ProjectId}", userId, projectId);
-            return BadRequest(new { message = ex.Message });
-        }
+        return Ok(result);
     }
 }

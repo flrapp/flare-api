@@ -13,12 +13,10 @@ namespace Flare.Api.Controllers.WebUI;
 public class ProjectsController : ControllerBase
 {
     private readonly IProjectService _projectService;
-    private readonly ILogger<ProjectsController> _logger;
 
-    public ProjectsController(IProjectService projectService, ILogger<ProjectsController> logger)
+    public ProjectsController(IProjectService projectService)
     {
         _projectService = projectService;
-        _logger = logger;
     }
 
     [HttpPost]
@@ -82,8 +80,6 @@ public class ProjectsController : ControllerBase
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _projectService.UpdateAsync(projectId, dto, userId);
 
-        _logger.LogInformation("Project {ProjectId} updated by user {UserId}", projectId, userId);
-
         return Ok(result);
     }
 
@@ -97,8 +93,6 @@ public class ProjectsController : ControllerBase
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
         await _projectService.DeleteAsync(projectId, userId);
-
-        _logger.LogInformation("Project {ProjectId} deleted by user {UserId}", projectId, userId);
 
         return NoContent();
     }
@@ -114,8 +108,6 @@ public class ProjectsController : ControllerBase
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _projectService.RegenerateApiKeyAsync(projectId, userId);
 
-        _logger.LogInformation("API key regenerated for project {ProjectId} by user {UserId}", projectId, userId);
-
         return Ok(result);
     }
 
@@ -130,8 +122,6 @@ public class ProjectsController : ControllerBase
         var userId = HttpContext.GetCurrentUserId()!.Value;
         await _projectService.ArchiveAsync(projectId, userId);
 
-        _logger.LogInformation("Project {ProjectId} archived by user {UserId}", projectId, userId);
-
         return NoContent();
     }
 
@@ -145,8 +135,6 @@ public class ProjectsController : ControllerBase
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
         await _projectService.UnarchiveAsync(projectId, userId);
-
-        _logger.LogInformation("Project {ProjectId} unarchived by user {UserId}", projectId, userId);
 
         return NoContent();
     }

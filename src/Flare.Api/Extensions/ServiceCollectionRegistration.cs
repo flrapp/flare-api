@@ -1,5 +1,4 @@
-﻿using Flare.Api.Attributes;
-using Flare.Api.Filters;
+﻿using Flare.Api.Filters;
 using Flare.Application.Authorization;
 using Flare.Application.Authorization.Requirements;
 using Flare.Application.Interfaces;

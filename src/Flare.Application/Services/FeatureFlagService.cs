@@ -140,23 +140,6 @@ public class FeatureFlagService : IFeatureFlagService
         await _hybridCache.RemoveByTagAsync(projectFeatureFlagTag);
     }
 
-    public async Task<FeatureFlagResponseDto> GetByIdAsync(Guid featureFlagId, Guid currentUserId)
-    {
-        var featureFlag = await _featureFlagRepository.GetByIdWithValuesAsync(featureFlagId);
-        if (featureFlag == null)
-        {
-            throw new NotFoundException("Feature flag not found.");
-        }
-
-        // Check if user has access to the project
-        if (!await _permissionService.IsProjectMemberAsync(currentUserId, featureFlag.ProjectId))
-        {
-            throw new ForbiddenException("You do not have access to this feature flag.");
-        }
-
-        return await MapToResponseDtoAsync(featureFlag);
-    }
-
     public async Task<List<FeatureFlagResponseDto>> GetByProjectIdAsync(Guid projectId, Guid currentUserId)
     {
         // Check if user has access to the project

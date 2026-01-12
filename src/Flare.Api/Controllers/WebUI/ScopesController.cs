@@ -13,12 +13,10 @@ namespace Flare.Api.Controllers.WebUI;
 public class ScopesController : ControllerBase
 {
     private readonly IScopeService _scopeService;
-    private readonly ILogger<ScopesController> _logger;
 
-    public ScopesController(IScopeService scopeService, ILogger<ScopesController> logger)
+    public ScopesController(IScopeService scopeService)
     {
         _scopeService = scopeService;
-        _logger = logger;
     }
 
     [HttpPost("projects/{projectId}/scopes")]
@@ -84,8 +82,6 @@ public class ScopesController : ControllerBase
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
         await _scopeService.DeleteAsync(scopeId, userId);
-
-        _logger.LogInformation("Scope {ScopeId} deleted by user {UserId}", scopeId, userId);
 
         return NoContent();
     }
