@@ -21,38 +21,6 @@ public class AuthController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthResultDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<AuthResultDto>> Register([FromBody] RegisterDto registerDto)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        try
-        {
-            var result = await _authService.RegisterAsync(registerDto);
-            await HttpContext.SignInUserAsync(result);
-            await _authService.UpdateLastLoginAsync(result.UserId);
-
-            _logger.LogInformation("User {Username} registered successfully", result.Username);
-
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning("Registration failed: {Message}", ex.Message);
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during registration");
-            return BadRequest(new { message = "Registration failed. Please try again." });
-        }
-    }
-
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

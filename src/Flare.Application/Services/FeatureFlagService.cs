@@ -140,23 +140,6 @@ public class FeatureFlagService : IFeatureFlagService
         await _hybridCache.RemoveByTagAsync(projectFeatureFlagTag);
     }
 
-    public async Task<FeatureFlagResponseDto> GetByIdAsync(Guid featureFlagId, Guid currentUserId)
-    {
-        var featureFlag = await _featureFlagRepository.GetByIdWithValuesAsync(featureFlagId);
-        if (featureFlag == null)
-        {
-            throw new NotFoundException("Feature flag not found.");
-        }
-
-        // Check if user has access to the project
-        if (!await _permissionService.IsProjectMemberAsync(currentUserId, featureFlag.ProjectId))
-        {
-            throw new ForbiddenException("You do not have access to this feature flag.");
-        }
-
-        return await MapToResponseDtoAsync(featureFlag);
-    }
-
     public async Task<List<FeatureFlagResponseDto>> GetByProjectIdAsync(Guid projectId, Guid currentUserId)
     {
         // Check if user has access to the project
@@ -196,7 +179,7 @@ public class FeatureFlagService : IFeatureFlagService
         }
 
         // Verify scope belongs to the same project
-        var scope = await _scopeRepository.GetByIdAsync(dto.ScopeId);
+        var scope = featureFlag.Project.Scopes.FirstOrDefault(s => s.Id == dto.ScopeId);
         if (scope == null)
         {
             throw new NotFoundException("Scope not found.");
@@ -208,7 +191,7 @@ public class FeatureFlagService : IFeatureFlagService
         }
 
         // Find or create the feature flag value
-        var featureFlagValue = featureFlag.Values.FirstOrDefault(v => v.ScopeId == dto.ScopeId);
+        var featureFlagValue = await _featureFlagRepository.GetValueByFlagIdAndScopeIdAsync(featureFlag.Id, dto.ScopeId);
 
         if (featureFlagValue == null)
         {
@@ -232,7 +215,7 @@ public class FeatureFlagService : IFeatureFlagService
         }
 
         featureFlag.UpdatedAt = DateTime.UtcNow;
-        await _featureFlagRepository.UpdateAsync(featureFlag);
+        await _featureFlagRepository.UpdateValueAsync(featureFlagValue);
         var cacheKey = CacheKeys.FeatureFlagCacheKey(featureFlag.Project.Alias, featureFlagValue.Scope.Alias, featureFlag.Key);
         await _hybridCache.RemoveAsync(cacheKey);
 

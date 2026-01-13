@@ -15,12 +15,10 @@ namespace Flare.Api.Controllers.WebUI;
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
-    private readonly ILogger<UserController> _logger;
 
-    public UserController(IUserService userService, ILogger<UserController> logger)
+    public UserController(IUserService userService)
     {
         _userService = userService;
-        _logger = logger;
     }
 
     [HttpPost]
@@ -37,7 +35,7 @@ public class UserController : ControllerBase
         var currentUserId = HttpContext.GetCurrentUserId()!.Value;
         var user = await _userService.CreateUserAsync(dto, currentUserId);
 
-        return CreatedAtAction(nameof(GetUserById), new { userId = user.UserId }, user);
+        return CreatedAtAction(nameof(GetAllUsers), null, user);
     }
 
     [HttpGet]
@@ -46,15 +44,6 @@ public class UserController : ControllerBase
     {
         var users = await _userService.GetAllUsersAsync();
         return Ok(users);
-    }
-
-    [HttpGet("{userId:guid}")]
-    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<UserResponseDto>> GetUserById(Guid userId)
-    {
-        var user = await _userService.GetUserByIdAsync(userId);
-        return Ok(user);
     }
 
     [HttpPut("{userId:guid}")]
@@ -79,10 +68,6 @@ public class UserController : ControllerBase
     public async Task<IActionResult> DeleteUser(Guid userId)
     {
         await _userService.SoftDeleteUserAsync(userId);
-
-        var currentUserId = HttpContext.GetCurrentUserId()!.Value;
-        _logger.LogInformation("User {UserId} soft deleted by admin {AdminId}", userId, currentUserId);
-
         return NoContent();
     }
 }

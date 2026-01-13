@@ -22,5 +22,4 @@ public interface IProjectUserRepository
     Task RemoveScopePermissionAsync(Guid projectUserId, Guid scopeId, ScopePermission permission);
     Task RemoveAllScopePermissionsForScopeAsync(Guid scopeId);
     Task<bool> ExistsAsync(Guid userId, Guid projectId);
-    Task<bool> ExistsByIdAsync(Guid projectUserId);
 }

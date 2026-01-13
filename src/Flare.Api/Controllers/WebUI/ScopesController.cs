@@ -13,12 +13,10 @@ namespace Flare.Api.Controllers.WebUI;
 public class ScopesController : ControllerBase
 {
     private readonly IScopeService _scopeService;
-    private readonly ILogger<ScopesController> _logger;
 
-    public ScopesController(IScopeService scopeService, ILogger<ScopesController> logger)
+    public ScopesController(IScopeService scopeService)
     {
         _scopeService = scopeService;
-        _logger = logger;
     }
 
     [HttpPost("projects/{projectId}/scopes")]
@@ -38,7 +36,7 @@ public class ScopesController : ControllerBase
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _scopeService.CreateAsync(projectId, dto, userId);
 
-        return CreatedAtAction(nameof(GetScope), new { scopeId = result.Id }, result);
+        return CreatedAtAction(nameof(GetScopes), new { projectId = result.ProjectId }, result);
     }
 
     [HttpGet("projects/{projectId}/scopes")]
@@ -51,20 +49,6 @@ public class ScopesController : ControllerBase
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var result = await _scopeService.GetByProjectIdAsync(projectId, userId);
-
-        return Ok(result);
-    }
-
-    [HttpGet("scopes/{scopeId}")]
-    [Authorize]
-    [ProducesResponseType(typeof(ScopeResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ScopeResponseDto>> GetScope(Guid scopeId)
-    {
-        var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _scopeService.GetByIdAsync(scopeId, userId);
 
         return Ok(result);
     }
@@ -98,8 +82,6 @@ public class ScopesController : ControllerBase
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
         await _scopeService.DeleteAsync(scopeId, userId);
-
-        _logger.LogInformation("Scope {ScopeId} deleted by user {UserId}", scopeId, userId);
 
         return NoContent();
     }

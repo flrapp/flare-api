@@ -11,7 +11,4 @@ public class ProjectDetailResponseDto
     public bool IsArchived { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public int MemberCount { get; set; }
-    public int ScopeCount { get; set; }
-    public int FeatureFlagCount { get; set; }
 }

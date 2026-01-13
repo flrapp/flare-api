@@ -3,27 +3,21 @@ using Asp.Versioning.ApiExplorer;
 using Flare.Api.Extensions;
 using Flare.Api.Middleware;
 using Flare.Application;
-using Flare.Application.Authorization;
-using Flare.Application.Authorization.Requirements;
 using Flare.Infrastructure;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Scalar.AspNetCore;
 
 namespace Flare.Api;
 
 public class Startup
 {
-    public Startup(IConfiguration configuration)
+    public Startup(IConfiguration configuration, IWebHostEnvironment environment)
     {
         Configuration = configuration;
+        Environment = environment;
     }
 
-    public IConfiguration Configuration { get; }
+    private IConfiguration Configuration { get; }
+    private IWebHostEnvironment Environment { get; }
 
     public void ConfigureServices(IServiceCollection services)
     {
@@ -40,16 +34,6 @@ public class Startup
         services.AddHttpContextAccessor();
         services.AddControllers();
 
-        services.AddCors(options =>
-        {
-            options.AddPolicy("LocalhostPolicy", builder =>
-            {
-                builder.WithOrigins("http://localhost:3000")
-                       .AllowAnyMethod()
-                       .AllowAnyHeader()
-                       .AllowCredentials();
-            });
-        });
 
         services.AddApiVersioning(options =>
         {
@@ -63,16 +47,23 @@ public class Startup
             options.SubstituteApiVersionInUrl = true;
         });
 
-        services.AddOpenApi();
+        if (Environment.IsDevelopment())
+        {
+            services.AddOpenApi();
+        }
+        else
+        {
+            services.ConfigureCors(Configuration, Environment);
+        }
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IApiVersionDescriptionProvider apiVersionDescriptionProvider)
     {
         app.UseExceptionHandler();
 
-        app.UseHttpsRedirection();
-        app.UseCors("LocalhostPolicy");
         app.UseRouting();
+        app.UseCors("UiCorsPolicy");
+        app.UseHttpsRedirection(); 
 
         app.UseAuthentication();
         app.UseAuthorization();

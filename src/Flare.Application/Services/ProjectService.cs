@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
 using Flare.Domain.Constants;
@@ -7,7 +6,6 @@ using Flare.Domain.Entities;
 using Flare.Domain.Enums;
 using Flare.Domain.Exceptions;
 using Flare.Infrastructure.Data.Repositories.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Flare.Application.Services;
@@ -15,53 +13,32 @@ namespace Flare.Application.Services;
 public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _projectRepository;
-    private readonly IScopeRepository _scopeRepository;
-    private readonly IProjectUserRepository _projectUserRepository;
     private readonly IPermissionService _permissionService;
     private readonly HybridCache _hybridCache;
 
     public ProjectService(
         IProjectRepository projectRepository,
-        IScopeRepository scopeRepository,
-        IProjectUserRepository projectUserRepository,
         IPermissionService permissionService,
         HybridCache hybridCache)
     {
         _projectRepository = projectRepository;
-        _scopeRepository = scopeRepository;
-        _projectUserRepository = projectUserRepository;
         _permissionService = permissionService;
         _hybridCache = hybridCache;
     }
 
     public async Task<ProjectDetailResponseDto> CreateAsync(CreateProjectDto dto, Guid creatorUserId)
     {
-        // Generate alias from name
-        var alias = GenerateAlias(dto.Name);
-
-        // Ensure alias is unique
-        var counter = 1;
-        var originalAlias = alias;
-        while (await _projectRepository.ExistsByAliasAsync(alias))
+        if (await _projectRepository.ExistsByAliasAsync(dto.Alias))
         {
-            alias = $"{originalAlias}-{counter}";
-            counter++;
+           throw new BadRequestException("This alias already exists");
         }
 
-        // Generate API key
         var apiKey = GenerateApiKey();
 
-        // Ensure API key is unique
-        while (await _projectRepository.ExistsByApiKeyAsync(apiKey))
-        {
-            apiKey = GenerateApiKey();
-        }
-
-        // Create project
         var project = new Project
         {
             Id = Guid.NewGuid(),
-            Alias = alias,
+            Alias = dto.Alias,
             Name = dto.Name,
             Description = dto.Description,
             ApiKey = apiKey,
@@ -70,79 +47,66 @@ public class ProjectService : IProjectService
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
+        
 
-        try
+        var defaultScopes = new List<Scope>
         {
-            await _projectRepository.AddAsync(project);
-
-            var defaultScopes = new List<Scope>
-            {
-                new Scope
-                {
-                    Id = Guid.NewGuid(),
-                    ProjectId = project.Id,
-                    Alias = "dev",
-                    Name = "Development",
-                    Description = "Development environment",
-                    CreatedAt = DateTime.UtcNow,
-                    Index = 0
-                },
-                new Scope
-                {
-                    Id = Guid.NewGuid(),
-                    ProjectId = project.Id,
-                    Alias = "staging",
-                    Name = "Staging",
-                    Description = "Staging environment",
-                    CreatedAt = DateTime.UtcNow,
-                    Index = 1
-                },
-                new Scope
-                {
-                    Id = Guid.NewGuid(),
-                    ProjectId = project.Id,
-                    Alias = "production",
-                    Name = "Production",
-                    Description = "Production environment",
-                    CreatedAt = DateTime.UtcNow,
-                    Index = 2
-                }
-            };
-
-            foreach (var scope in defaultScopes)
-            {
-                await _scopeRepository.AddAsync(scope);
-            }
-
-            // Create ProjectUser for creator with ALL ProjectPermissions
-            var projectUser = new ProjectUser
+            new()
             {
                 Id = Guid.NewGuid(),
                 ProjectId = project.Id,
-                UserId = creatorUserId,
-                InvitedBy = creatorUserId,
-                JoinedAt = DateTime.UtcNow
-            };
-
-            await _projectUserRepository.AddAsync(projectUser);
-
-            // Grant all project permissions to creator
-            foreach (var permission in Enum.GetValues<ProjectPermission>())
+                Alias = "dev",
+                Name = "Development",
+                Description = "Development environment",
+                CreatedAt = DateTime.UtcNow,
+                Index = 0
+            },
+            new()
             {
-                await _projectUserRepository.AddProjectPermissionAsync(projectUser.Id, permission);
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                Alias = "staging",
+                Name = "Staging",
+                Description = "Staging environment",
+                CreatedAt = DateTime.UtcNow,
+                Index = 1
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                Alias = "production",
+                Name = "Production",
+                Description = "Production environment",
+                CreatedAt = DateTime.UtcNow,
+                Index = 2
             }
+        };
 
-            return await MapToDetailResponseDto(project, creatorUserId, true);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
+        project.Scopes = defaultScopes;
+
+        var projectUser = new ProjectUser
         {
-            throw new BadRequestException("A project with this name already exists.");
-        }
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            UserId = creatorUserId,
+            InvitedBy = creatorUserId,
+            JoinedAt = DateTime.UtcNow
+        };
+
+        projectUser.ProjectPermissions = Enum.GetValues<ProjectPermission>()
+            .Select(x => new ProjectUserProjectPermission
+                { Id = Guid.NewGuid(), Permission = x, ProjectUserId = projectUser.Id }).ToList();
+        
+        project.Members = [projectUser];
+        
+        await _projectRepository.AddAsync(project);
+
+        return MapToDetailResponseDto(project, true);
     }
 
     public async Task<ProjectDetailResponseDto> UpdateAsync(Guid projectId, UpdateProjectDto dto, Guid currentUserId)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
             throw new ForbiddenException("You do not have permission to update this project.");
@@ -159,22 +123,14 @@ public class ProjectService : IProjectService
         project.Name = dto.Name;
         project.Description = dto.Description;
         project.UpdatedAt = DateTime.UtcNow;
-
-        try
-        {
-            await _projectRepository.UpdateAsync(project);
-            await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(previousAlias));
-            return await MapToDetailResponseDto(project, currentUserId, true);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
-        {
-            throw new BadRequestException("A project with this name already exists.");
-        }
+        
+        await _projectRepository.UpdateAsync(project);
+        await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(previousAlias));
+        return MapToDetailResponseDto(project, true);
     }
 
     public async Task DeleteAsync(Guid projectId, Guid currentUserId)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.DeleteProject))
         {
             throw new ForbiddenException("You do not have permission to delete this project.");
@@ -192,27 +148,15 @@ public class ProjectService : IProjectService
 
     public async Task<ProjectDetailResponseDto> GetByIdAsync(Guid projectId, Guid currentUserId)
     {
-        var project = await _projectRepository.GetByIdWithDetailsAsync(projectId);
+        var project = await _projectRepository.GetByIdAsync(projectId);
         if (project == null)
         {
             throw new NotFoundException("Project not found.");
         }
 
-        // Check if user has ViewApiKey permission
         var canViewApiKey = await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ViewApiKey);
 
-        return await MapToDetailResponseDto(project, currentUserId, canViewApiKey);
-    }
-
-    public async Task<ProjectResponseDto> GetByAliasAsync(string alias, Guid currentUserId)
-    {
-        var project = await _projectRepository.GetByAliasAsync(alias);
-        if (project == null)
-        {
-            throw new NotFoundException("Project not found.");
-        }
-
-        return MapToResponseDto(project);
+        return MapToDetailResponseDto(project, canViewApiKey);
     }
 
     public async Task<List<ProjectResponseDto>> GetUserProjectsAsync(Guid userId)
@@ -223,7 +167,6 @@ public class ProjectService : IProjectService
 
     public async Task<RegenerateApiKeyResponseDto> RegenerateApiKeyAsync(Guid projectId, Guid currentUserId)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.RegenerateApiKey))
         {
             throw new ForbiddenException("You do not have permission to regenerate the API key.");
@@ -235,14 +178,7 @@ public class ProjectService : IProjectService
             throw new NotFoundException("Project not found.");
         }
 
-        // Generate new API key
         var newApiKey = GenerateApiKey();
-
-        // Ensure uniqueness
-        while (await _projectRepository.ExistsByApiKeyAsync(newApiKey))
-        {
-            newApiKey = GenerateApiKey();
-        }
 
         project.ApiKey = newApiKey;
         project.UpdatedAt = DateTime.UtcNow;
@@ -259,7 +195,6 @@ public class ProjectService : IProjectService
 
     public async Task ArchiveAsync(Guid projectId, Guid currentUserId)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
             throw new ForbiddenException("You do not have permission to archive this project.");
@@ -284,7 +219,6 @@ public class ProjectService : IProjectService
 
     public async Task UnarchiveAsync(Guid projectId, Guid currentUserId)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
             throw new ForbiddenException("You do not have permission to unarchive this project.");
@@ -309,20 +243,17 @@ public class ProjectService : IProjectService
 
     public async Task<MyPermissionsResponseDto> GetMyPermissionsAsync(Guid projectId, Guid currentUserId)
     {
-        // Check if project exists
         var project = await _projectRepository.GetByIdAsync(projectId);
         if (project == null)
         {
             throw new NotFoundException("Project not found.");
         }
 
-        // Check if user is a project member
         if (!await _permissionService.IsProjectMemberAsync(currentUserId, projectId))
         {
             throw new ForbiddenException("You are not a member of this project.");
         }
 
-        // Get user's project and scope permissions
         var projectPermissions = await _permissionService.GetUserProjectPermissionsAsync(currentUserId, projectId);
         var scopePermissions = await _permissionService.GetUserScopePermissionsAsync(currentUserId, projectId);
 
@@ -337,36 +268,14 @@ public class ProjectService : IProjectService
 
     #region Helper Methods
 
-    private static string GenerateAlias(string name)
-    {
-        // Convert to lowercase
-        var alias = name.ToLowerInvariant();
-
-        // Replace spaces and special characters with hyphens
-        alias = Regex.Replace(alias, @"[^a-z0-9]+", "-");
-
-        // Remove leading/trailing hyphens
-        alias = alias.Trim('-');
-
-        // Limit length to 100 characters
-        if (alias.Length > 100)
-        {
-            alias = alias.Substring(0, 100).TrimEnd('-');
-        }
-
-        return alias;
-    }
-
     private static string GenerateApiKey()
     {
-        // Generate 32 random bytes
         var bytes = new byte[32];
         using (var rng = RandomNumberGenerator.Create())
         {
             rng.GetBytes(bytes);
         }
 
-        // Convert to base64 URL-safe string
         return Convert.ToBase64String(bytes)
             .Replace('+', '-')
             .Replace('/', '_')
@@ -388,15 +297,8 @@ public class ProjectService : IProjectService
         };
     }
 
-    private async Task<ProjectDetailResponseDto> MapToDetailResponseDto(Project project, Guid currentUserId, bool canViewApiKey)
+    private ProjectDetailResponseDto MapToDetailResponseDto(Project project, bool canViewApiKey)
     {
-        // Get the project with full details if not already loaded
-        if (project.Members == null || project.Scopes == null || project.FeatureFlags == null)
-        {
-            project = await _projectRepository.GetByIdWithDetailsAsync(project.Id)
-                ?? throw new NotFoundException("Project not found.");
-        }
-
         return new ProjectDetailResponseDto
         {
             Id = project.Id,
@@ -408,9 +310,6 @@ public class ProjectService : IProjectService
             IsArchived = project.IsArchived,
             CreatedAt = project.CreatedAt,
             UpdatedAt = project.UpdatedAt,
-            MemberCount = project.Members?.Count ?? 0,
-            ScopeCount = project.Scopes?.Count ?? 0,
-            FeatureFlagCount = project.FeatureFlags?.Count ?? 0
         };
     }
 
