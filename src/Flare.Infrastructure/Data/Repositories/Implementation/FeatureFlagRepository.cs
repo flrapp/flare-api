@@ -111,4 +111,25 @@ public class FeatureFlagRepository : IFeatureFlagRepository
                           ffv.FeatureFlag.Project.Alias == projectAlias)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<FeatureFlagValue?> GetByProjectIdScopeFlagKeyAsync(Guid projectId, string scopeAlias,
+        string featureFlagKey)
+    {
+        return await _context.FeatureFlagValues
+            .Include(ffv => ffv.Scope)
+            .Where(ffv => ffv.FeatureFlag.Key == featureFlagKey &&
+                          ffv.Scope.Alias == scopeAlias &&
+                          ffv.FeatureFlag.ProjectId == projectId)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<List<FeatureFlagValue>> GetAllByProjectIdAndScopeAliasAsync(Guid projectId, string scopeAlias)
+    {
+        return await _context.FeatureFlagValues
+            .Include(ffv => ffv.Scope)
+            .Include(ffv => ffv.FeatureFlag)
+            .Where(ffv => ffv.Scope.Alias == scopeAlias &&
+                          ffv.FeatureFlag.ProjectId == projectId)
+            .ToListAsync();
+    }
 }

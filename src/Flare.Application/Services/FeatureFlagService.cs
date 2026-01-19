@@ -1,4 +1,5 @@
 using Flare.Application.DTOs;
+using Flare.Application.DTOs.Sdk;
 using Flare.Application.Interfaces;
 using Flare.Domain.Constants;
 using Flare.Domain.Entities;
@@ -253,6 +254,65 @@ public class FeatureFlagService : IFeatureFlagService
             },
             tags: [projectFeatureFlagTag, projectScopeTag]);
         return result;
+    }
+
+    public async Task<FlagEvaluationResponseDto> EvaluateFlagAsync(Guid projectId, string flagKey,
+        EvaluationContextDto context)
+    {
+        var scopeAlias = context.Scope;
+
+        var scope = await _scopeRepository.GetByProjectAndAliasAsync(projectId, scopeAlias);
+        if (scope == null)
+            throw new NotFoundException($"Scope '{scopeAlias}' not found in project.");
+
+        var featureFlagValue = await _featureFlagRepository.GetByProjectIdScopeFlagKeyAsync(
+            projectId, scopeAlias, flagKey);
+
+        if (featureFlagValue == null)
+            throw new NotFoundException($"Feature flag '{flagKey}' not found.");
+
+        return new FlagEvaluationResponseDto
+        {
+            FlagKey = flagKey,
+            Value = featureFlagValue.IsEnabled,
+            Variant = featureFlagValue.IsEnabled ? "enabled" : "disabled",
+            Reason = "STATIC",
+            FlagMetadata = new FlagMetadataDto
+            {
+                ScopeAlias = scope.Alias,
+                ScopeId = scope.Id,
+                UpdatedAt = featureFlagValue.UpdatedAt
+            }
+        };
+    }
+
+    public async Task<BulkEvaluationResponseDto> EvaluateAllFlagsAsync(Guid projectId, EvaluationContextDto context)
+    {
+        var scopeAlias = context.Scope;
+
+        // Validate scope exists in project
+        var scope = await _scopeRepository.GetByProjectAndAliasAsync(projectId, scopeAlias);
+        if (scope == null)
+            throw new NotFoundException($"Scope '{scopeAlias}' not found in project.");
+
+        // Get all feature flag values for this project and scope
+        var featureFlagValues = await _featureFlagRepository.GetAllByProjectIdAndScopeAliasAsync(projectId, scopeAlias);
+
+        var flags = featureFlagValues.Select(ffv => new FlagEvaluationResponseDto
+        {
+            FlagKey = ffv.FeatureFlag.Key,
+            Value = ffv.IsEnabled,
+            Variant = ffv.IsEnabled ? "enabled" : "disabled",
+            Reason = "STATIC",
+            FlagMetadata = new FlagMetadataDto
+            {
+                ScopeAlias = scope.Alias,
+                ScopeId = scope.Id,
+                UpdatedAt = ffv.UpdatedAt
+            }
+        }).ToList();
+
+        return new BulkEvaluationResponseDto { Flags = flags };
     }
 
     #region Helper Methods

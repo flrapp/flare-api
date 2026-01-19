@@ -79,6 +79,7 @@ public static class ServiceCollectionRegistration
     public static IServiceCollection AddProjectApiKeyAuthorisation(this IServiceCollection services)
     {
         services.AddScoped<ProjectApiKeyAuthorizationFilter>();
+        services.AddScoped<BearerApiKeyAuthorizationFilter>();
         services.AddScoped<IApiKeyValidator, ApiKeyValidator>();
         return services;
     }
