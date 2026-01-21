@@ -10,6 +10,7 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
     {
         builder.HasKey(e => e.Id);
         builder.HasIndex(e => e.Alias).IsUnique();
+        builder.HasIndex(e => e.ApiKey).IsUnique();
         builder.Property(e => e.Alias).HasMaxLength(50).IsRequired();
         builder.Property(e => e.Name).HasMaxLength(255).IsRequired();
         builder.Property(e => e.Description).HasMaxLength(1000);

@@ -1,4 +1,5 @@
-﻿using Flare.Api.Filters;
+﻿using Flare.Api.Constants;
+using Flare.Api.Filters;
 using Flare.Application.Authorization;
 using Flare.Application.Authorization.Requirements;
 using Flare.Application.Interfaces;
@@ -79,6 +80,7 @@ public static class ServiceCollectionRegistration
     public static IServiceCollection AddProjectApiKeyAuthorisation(this IServiceCollection services)
     {
         services.AddScoped<ProjectApiKeyAuthorizationFilter>();
+        services.AddScoped<BearerApiKeyAuthorizationFilter>();
         services.AddScoped<IApiKeyValidator, ApiKeyValidator>();
         return services;
     }
@@ -87,13 +89,14 @@ public static class ServiceCollectionRegistration
     {
         services.AddCors(options =>
         {
-            options.AddPolicy("UiCorsPolicy", builder =>
+            options.AddPolicy(CorsPolicyConstants.UiCorsPolicy, builder =>
             {
                 if (environment.IsDevelopment())
                 {
-                    builder.AllowAnyOrigin()
+                    builder.WithOrigins("http://localhost:3000")
                         .AllowAnyMethod()
-                        .AllowAnyHeader();
+                        .AllowAnyHeader()
+                        .AllowCredentials(); 
                 }
                 else
                 {
@@ -107,6 +110,13 @@ public static class ServiceCollectionRegistration
                         .AllowAnyHeader()
                         .AllowCredentials();
                 }
+            });
+            
+            options.AddPolicy(CorsPolicyConstants.IntegrationCorsPolicy, builder =>
+            {
+                builder.SetIsOriginAllowed(_ => true)
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
             });
         });
 
