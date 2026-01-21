@@ -1,8 +1,10 @@
 using Asp.Versioning;
 using Flare.Api.Attributes;
+using Flare.Api.Constants;
 using Flare.Application.DTOs.Sdk;
 using Flare.Application.Interfaces;
 using Flare.Domain.Constants;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Flare.Api.Controllers.Sdk;
@@ -13,6 +15,7 @@ namespace Flare.Api.Controllers.Sdk;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("sdk/v{version:apiVersion}/flags")]
+[EnableCors(CorsPolicyConstants.IntegrationCorsPolicy)]
 public class FlagsController : ControllerBase
 {
     private readonly IFeatureFlagService _featureFlagService;

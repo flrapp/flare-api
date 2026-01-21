@@ -51,10 +51,8 @@ public class Startup
         {
             services.AddOpenApi();
         }
-        else
-        {
-            services.ConfigureCors(Configuration, Environment);
-        }
+   
+        services.ConfigureCors(Configuration, Environment);
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IApiVersionDescriptionProvider apiVersionDescriptionProvider)
