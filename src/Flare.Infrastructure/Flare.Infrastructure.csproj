@@ -14,6 +14,9 @@
       <PackageReference Include="BCrypt.Net-Next" />
       <PackageReference Include="EFCore.NamingConventions" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" />
+      <PackageReference Include="Serilog.AspNetCore" />
+      <PackageReference Include="Serilog.Enrichers.Environment" />
+      <PackageReference Include="Serilog.Enrichers.Thread" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
