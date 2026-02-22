@@ -102,6 +102,20 @@ public class ProjectService : IProjectService
             .Select(x => new ProjectUserProjectPermission
                 { Id = Guid.NewGuid(), Permission = x, ProjectUserId = projectUser.Id }).ToList();
 
+        projectUser.ScopePermissions = defaultScopes.SelectMany(x => new []
+        {
+            new ProjectUserScopePermission
+            {
+                Permission = ScopePermission.ReadFeatureFlags,
+                ScopeId = x.Id
+            },
+            new ProjectUserScopePermission
+            {
+                Permission = ScopePermission.UpdateFeatureFlags,
+                ScopeId = x.Id
+            }
+        }).ToList();
+        
         project.Members = [projectUser];
 
         await _projectRepository.AddAsync(project);
