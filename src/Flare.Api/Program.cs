@@ -47,8 +47,7 @@ public class Program
                 configuration
                     .ReadFrom.Configuration(context.Configuration)
                     .ReadFrom.Services(services)
-                    .Enrich.FromLogContext()
-                    .WriteTo.Console();
+                    .Enrich.FromLogContext();
                     
                 var otelEndpoint = context.Configuration.GetValue<string>(EnvironmentVariablesNames.OtelEndpoint);
                 if (otelEndpoint != null)
