@@ -32,8 +32,6 @@ public class ProjectService : IProjectService
 
     public async Task<ProjectDetailResponseDto> CreateAsync(CreateProjectDto dto, Guid creatorUserId, string actorUsername)
     {
-        var timestamp = DateTimeOffset.UtcNow;
-
         if (await _projectRepository.ExistsByAliasAsync(dto.Alias))
         {
            throw new BadRequestException("This alias already exists");
@@ -108,15 +106,13 @@ public class ProjectService : IProjectService
 
         await _projectRepository.AddAsync(project);
 
-        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Created", timestamp);
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Created");
 
         return MapToDetailResponseDto(project, true);
     }
 
     public async Task<ProjectDetailResponseDto> UpdateAsync(Guid projectId, UpdateProjectDto dto, Guid currentUserId, string actorUsername)
     {
-        var timestamp = DateTimeOffset.UtcNow;
-
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
             throw new ForbiddenException("You do not have permission to update this project.");
@@ -140,15 +136,13 @@ public class ProjectService : IProjectService
         await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(previousAlias));
 
         var newValue = new { dto.Name, dto.Alias, dto.Description };
-        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Updated", timestamp, oldValue, newValue);
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Updated", oldValue, newValue);
 
         return MapToDetailResponseDto(project, true);
     }
 
     public async Task DeleteAsync(Guid projectId, Guid currentUserId, string actorUsername)
     {
-        var timestamp = DateTimeOffset.UtcNow;
-
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.DeleteProject))
         {
             throw new ForbiddenException("You do not have permission to delete this project.");
@@ -165,7 +159,7 @@ public class ProjectService : IProjectService
         await _projectRepository.DeleteAsync(projectId);
         await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(projectAlias));
 
-        _auditLogger.LogProjectAudit(projectAlias, actorUsername, "Project", null, "Deleted", timestamp);
+        _auditLogger.LogProjectAudit(projectAlias, actorUsername, "Project", null, "Deleted");
     }
 
     public async Task<ProjectDetailResponseDto> GetByIdAsync(Guid projectId, Guid currentUserId)
@@ -189,8 +183,6 @@ public class ProjectService : IProjectService
 
     public async Task<RegenerateApiKeyResponseDto> RegenerateApiKeyAsync(Guid projectId, Guid currentUserId, string actorUsername)
     {
-        var timestamp = DateTimeOffset.UtcNow;
-
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.RegenerateApiKey))
         {
             throw new ForbiddenException("You do not have permission to regenerate the API key.");
@@ -210,7 +202,7 @@ public class ProjectService : IProjectService
         await _projectRepository.UpdateAsync(project);
         await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(project.Alias));
 
-        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "ApiKeyRegenerated", timestamp);
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "ApiKeyRegenerated");
 
         return new RegenerateApiKeyResponseDto
         {
@@ -221,8 +213,6 @@ public class ProjectService : IProjectService
 
     public async Task ArchiveAsync(Guid projectId, Guid currentUserId, string actorUsername)
     {
-        var timestamp = DateTimeOffset.UtcNow;
-
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
             throw new ForbiddenException("You do not have permission to archive this project.");
@@ -244,13 +234,11 @@ public class ProjectService : IProjectService
 
         await _projectRepository.UpdateAsync(project);
 
-        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Archived", timestamp);
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Archived");
     }
 
     public async Task UnarchiveAsync(Guid projectId, Guid currentUserId, string actorUsername)
     {
-        var timestamp = DateTimeOffset.UtcNow;
-
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
             throw new ForbiddenException("You do not have permission to unarchive this project.");
@@ -272,7 +260,7 @@ public class ProjectService : IProjectService
 
         await _projectRepository.UpdateAsync(project);
 
-        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Unarchived", timestamp);
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Unarchived");
     }
 
     public async Task<MyPermissionsResponseDto> GetMyPermissionsAsync(Guid projectId, Guid currentUserId)

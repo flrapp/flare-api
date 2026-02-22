@@ -25,8 +25,7 @@ public interface IAuditLogger
         string username,
         string entityType,
         string? scope,
-        string action,
-        DateTimeOffset timestamp);
+        string action);
 
     /// <summary>
     /// Logs a project-scoped change event with before/after state.
@@ -40,7 +39,6 @@ public interface IAuditLogger
         string entityType,
         string? scope,
         string action,
-        DateTimeOffset timestamp,
         object oldValue,
         object newValue);
 
@@ -52,8 +50,7 @@ public interface IAuditLogger
         string username,
         string entityType,
         string? scope,
-        string action,
-        DateTimeOffset timestamp);
+        string action);
 
     /// <summary>
     /// Logs a system-level user change event with before/after state.
@@ -66,7 +63,6 @@ public interface IAuditLogger
         string entityType,
         string? scope,
         string action,
-        DateTimeOffset timestamp,
         object oldValue,
         object newValue);
 }

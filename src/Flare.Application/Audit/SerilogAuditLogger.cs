@@ -42,12 +42,11 @@ public sealed class SerilogAuditLogger : IAuditLogger
         string username,
         string entityType,
         string? scope,
-        string action,
-        DateTimeOffset timestamp)
+        string action)
     {
         _projectLogger.LogInformation(
-            "Audit: {Action} on {EntityType} by {Username} [ProjectAlias={ProjectAlias} Scope={Scope} Timestamp={Timestamp}]",
-            action, entityType, username, projectAlias, scope, timestamp);
+            "Audit: {Action} on {EntityType} by {Username} [ProjectAlias={ProjectAlias} Scope={Scope}]",
+            action, entityType, username, projectAlias, scope);
     }
 
     /// <inheritdoc/>
@@ -57,13 +56,12 @@ public sealed class SerilogAuditLogger : IAuditLogger
         string entityType,
         string? scope,
         string action,
-        DateTimeOffset timestamp,
         object oldValue,
         object newValue)
     {
         _projectLogger.LogInformation(
-            "Audit: {Action} on {EntityType} by {Username} [ProjectAlias={ProjectAlias} Scope={Scope} Timestamp={Timestamp} OldValue={@OldValue} NewValue={@NewValue}]",
-            action, entityType, username, projectAlias, scope, timestamp, oldValue, newValue);
+            "Audit: {Action} on {EntityType} by {Username} [ProjectAlias={ProjectAlias} Scope={Scope} OldValue={@OldValue} NewValue={@NewValue}]",
+            action, entityType, username, projectAlias, scope, oldValue, newValue);
     }
 
     /// <inheritdoc/>
@@ -71,12 +69,11 @@ public sealed class SerilogAuditLogger : IAuditLogger
         string username,
         string entityType,
         string? scope,
-        string action,
-        DateTimeOffset timestamp)
+        string action)
     {
         _userLogger.LogInformation(
-            "Audit: {Action} on {EntityType} by {Username} [Scope={Scope} Timestamp={Timestamp}]",
-            action, entityType, username, scope, timestamp);
+            "Audit: {Action} on {EntityType} by {Username} [Scope={Scope}]",
+            action, entityType, username, scope);
     }
 
     /// <inheritdoc/>
@@ -85,12 +82,11 @@ public sealed class SerilogAuditLogger : IAuditLogger
         string entityType,
         string? scope,
         string action,
-        DateTimeOffset timestamp,
         object oldValue,
         object newValue)
     {
         _userLogger.LogInformation(
-            "Audit: {Action} on {EntityType} by {Username} [Scope={Scope} Timestamp={Timestamp} OldValue={OldValue} NewValue={NewValue}",
-            action, entityType, username, scope, timestamp, oldValue, newValue);
+            "Audit: {Action} on {EntityType} by {Username} [Scope={Scope} OldValue={@OldValue} NewValue={@NewValue}]",
+            action, entityType, username, scope, oldValue, newValue);
     }
 }
