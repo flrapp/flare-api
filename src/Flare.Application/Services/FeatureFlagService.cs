@@ -287,12 +287,6 @@ public class FeatureFlagService : IFeatureFlagService
             Value = featureFlagValue.IsEnabled,
             Variant = featureFlagValue.IsEnabled ? "enabled" : "disabled",
             Reason = "STATIC",
-            FlagMetadata = new FlagMetadataDto
-            {
-                ScopeAlias = scope.Alias,
-                ScopeId = scope.Id,
-                UpdatedAt = featureFlagValue.UpdatedAt
-            }
         };
     }
 
@@ -312,12 +306,6 @@ public class FeatureFlagService : IFeatureFlagService
             Value = ffv.IsEnabled,
             Variant = ffv.IsEnabled ? "enabled" : "disabled",
             Reason = "STATIC",
-            FlagMetadata = new FlagMetadataDto
-            {
-                ScopeAlias = scope.Alias,
-                ScopeId = scope.Id,
-                UpdatedAt = ffv.UpdatedAt
-            }
         }).ToList();
 
         return new BulkEvaluationResponseDto { Flags = flags };
