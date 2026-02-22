@@ -1,3 +1,4 @@
+using Flare.Application.Audit;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
 using Flare.Domain.Entities;
@@ -15,37 +16,37 @@ public class ProjectUserService : IProjectUserService
     private readonly IProjectRepository _projectRepository;
     private readonly IScopeRepository _scopeRepository;
     private readonly IPermissionService _permissionService;
+    private readonly IAuditLogger _auditLogger;
 
     public ProjectUserService(
         IProjectUserRepository projectUserRepository,
         IUserRepository userRepository,
         IProjectRepository projectRepository,
         IScopeRepository scopeRepository,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        IAuditLogger auditLogger)
     {
         _projectUserRepository = projectUserRepository;
         _userRepository = userRepository;
         _projectRepository = projectRepository;
         _scopeRepository = scopeRepository;
         _permissionService = permissionService;
+        _auditLogger = auditLogger;
     }
 
-    public async Task<ProjectUserResponseDto> InviteUserAsync(Guid projectId, InviteUserDto dto, Guid inviterUserId)
+    public async Task<ProjectUserResponseDto> InviteUserAsync(Guid projectId, InviteUserDto dto, Guid inviterUserId, string actorUsername)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(inviterUserId, projectId, ProjectPermission.ManageUsers))
         {
             throw new ForbiddenException("You do not have permission to invite users to this project.");
         }
 
-        // Verify project exists
-        var projectExists = await _projectRepository.ExistsByIdAsync(projectId);
-        if (!projectExists)
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
         {
             throw new NotFoundException("Project not found.");
         }
 
-        // Verify user exists and is active
         var user = await _userRepository.GetByIdAsync(dto.UserId);
         if (user == null)
         {
@@ -57,13 +58,11 @@ public class ProjectUserService : IProjectUserService
             throw new BadRequestException("User is not active.");
         }
 
-        // Check if user is already a member
         if (await _projectUserRepository.ExistsAsync(dto.UserId, projectId))
         {
             throw new BadRequestException("User is already a member of this project.");
         }
 
-        // Create ProjectUser
         var projectUser = new ProjectUser
         {
             Id = Guid.NewGuid(),
@@ -77,7 +76,6 @@ public class ProjectUserService : IProjectUserService
         {
             await _projectUserRepository.AddAsync(projectUser);
 
-            // Add project permissions if any
             foreach (var permission in dto.ProjectPermissions)
             {
                 try
@@ -90,10 +88,8 @@ public class ProjectUserService : IProjectUserService
                 }
             }
 
-            // Add scope permissions if any
             foreach (var scopePermission in dto.ScopePermissions)
             {
-                // Verify scope belongs to the project
                 var scope = await _scopeRepository.GetByIdAsync(scopePermission.Key);
                 if (scope != null && scope.ProjectId == projectId)
                 {
@@ -111,6 +107,8 @@ public class ProjectUserService : IProjectUserService
                 }
             }
 
+            _auditLogger.LogProjectAudit(project.Alias, actorUsername, "ProjectMember", null, "UserInvited");
+
             return await MapToResponseDtoAsync(projectUser, user);
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
@@ -119,12 +117,17 @@ public class ProjectUserService : IProjectUserService
         }
     }
 
-    public async Task RemoveUserAsync(Guid projectId, Guid userId, Guid currentUserId)
+    public async Task RemoveUserAsync(Guid projectId, Guid userId, Guid currentUserId, string actorUsername)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageUsers))
         {
             throw new ForbiddenException("You do not have permission to remove users from this project.");
+        }
+
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
+        {
+            throw new NotFoundException("Project not found.");
         }
 
         var projectUser = await _projectUserRepository.GetByUserAndProjectAsync(userId, projectId);
@@ -133,7 +136,6 @@ public class ProjectUserService : IProjectUserService
             throw new NotFoundException("User is not a member of this project.");
         }
 
-        // Prevent removing the last user with ManageUsers permission
         var projectUsers = await _projectUserRepository.GetByProjectIdAsync(projectId);
         var usersWithManageUsersCount = 0;
         foreach (var pu in projectUsers)
@@ -149,7 +151,6 @@ public class ProjectUserService : IProjectUserService
             throw new BadRequestException("Cannot remove the only user with ManageUsers permission.");
         }
 
-        // Prevent removing the last user with DeleteProject permission
         var usersWithDeleteCount = 0;
         foreach (var pu in projectUsers)
         {
@@ -165,11 +166,12 @@ public class ProjectUserService : IProjectUserService
         }
 
         await _projectUserRepository.DeleteAsync(projectUser.Id);
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "ProjectMember", null, "UserRemoved");
     }
 
     public async Task<List<ProjectUserResponseDto>> GetProjectUsersAsync(Guid projectId, Guid currentUserId)
     {
-        // Check if user has access to the project
         if (!await _permissionService.IsProjectMemberAsync(currentUserId, projectId))
         {
             throw new ForbiddenException("You do not have access to this project.");
@@ -192,7 +194,6 @@ public class ProjectUserService : IProjectUserService
 
     public async Task<ProjectUserResponseDto> GetProjectUserAsync(Guid projectId, Guid userId, Guid currentUserId)
     {
-        // Check if user has access to the project
         if (!await _permissionService.IsProjectMemberAsync(currentUserId, projectId))
         {
             throw new ForbiddenException("You do not have access to this project.");
@@ -203,7 +204,7 @@ public class ProjectUserService : IProjectUserService
         {
             throw new NotFoundException("User not found.");
         }
-        
+
         var projectUser = await _projectUserRepository.GetByUserAndProjectAsync(userId, projectId);
         if (projectUser == null)
         {
@@ -213,11 +214,17 @@ public class ProjectUserService : IProjectUserService
         return await MapToResponseDtoAsync(projectUser, user);
     }
 
-    public async Task AssignProjectPermissionsAsync(Guid projectId, Guid userId, AssignProjectPermissionsDto dto, Guid currentUserId)
+    public async Task AssignProjectPermissionsAsync(Guid projectId, Guid userId, AssignProjectPermissionsDto dto, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageUsers))
         {
             throw new ForbiddenException("You do not have permission to assign permissions in this project.");
+        }
+
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
+        {
+            throw new NotFoundException("Project not found.");
         }
 
         var projectUser = await _projectUserRepository.GetByUserAndProjectAsync(userId, projectId);
@@ -237,14 +244,21 @@ public class ProjectUserService : IProjectUserService
                 // Permission already exists, ignore
             }
         }
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "ProjectMember", null, "ProjectPermissionsAssigned");
     }
 
-    public async Task RevokeProjectPermissionAsync(Guid projectId, Guid userId, ProjectPermission permission, Guid currentUserId)
+    public async Task RevokeProjectPermissionAsync(Guid projectId, Guid userId, ProjectPermission permission, Guid currentUserId, string actorUsername)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageUsers))
         {
             throw new ForbiddenException("You do not have permission to revoke permissions in this project.");
+        }
+
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
+        {
+            throw new NotFoundException("Project not found.");
         }
 
         var projectUser = await _projectUserRepository.GetByUserAndProjectAsync(userId, projectId);
@@ -253,13 +267,11 @@ public class ProjectUserService : IProjectUserService
             throw new NotFoundException("User is not a member of this project.");
         }
 
-        // Prevent user from removing ManageUsers permission from themselves
         if (currentUserId == userId && permission == ProjectPermission.ManageUsers)
         {
             throw new BadRequestException("You cannot remove ManageUsers permission from yourself.");
         }
 
-        // If revoking ManageUsers permission, ensure at least one user still has it
         if (permission == ProjectPermission.ManageUsers)
         {
             var usersWithManageUsersPermission = await _projectUserRepository.GetByProjectIdAsync(projectId);
@@ -278,7 +290,6 @@ public class ProjectUserService : IProjectUserService
             }
         }
 
-        // If revoking DeleteProject permission, ensure at least one user still has it
         if (permission == ProjectPermission.DeleteProject)
         {
             var usersWithDeletePermission = await _projectUserRepository.GetByProjectIdAsync(projectId);
@@ -298,14 +309,21 @@ public class ProjectUserService : IProjectUserService
         }
 
         await _projectUserRepository.RemoveProjectPermissionAsync(projectUser.Id, permission);
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "ProjectMember", null, "ProjectPermissionRevoked");
     }
 
-    public async Task AssignScopePermissionsAsync(Guid projectId, Guid userId, AssignScopePermissionsDto dto, Guid currentUserId)
+    public async Task AssignScopePermissionsAsync(Guid projectId, Guid userId, AssignScopePermissionsDto dto, Guid currentUserId, string actorUsername)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageUsers))
         {
             throw new ForbiddenException("You do not have permission to assign permissions in this project.");
+        }
+
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
+        {
+            throw new NotFoundException("Project not found.");
         }
 
         var projectUser = await _projectUserRepository.GetByUserAndProjectAsync(userId, projectId);
@@ -314,7 +332,6 @@ public class ProjectUserService : IProjectUserService
             throw new NotFoundException("User is not a member of this project.");
         }
 
-        // Verify scope belongs to the project
         var scope = await _scopeRepository.GetByIdAsync(dto.ScopeId);
         if (scope == null)
         {
@@ -326,7 +343,6 @@ public class ProjectUserService : IProjectUserService
             throw new BadRequestException("Scope does not belong to this project.");
         }
 
-        // Add each permission (repository should handle duplicates)
         foreach (var permission in dto.Permissions)
         {
             try
@@ -338,14 +354,21 @@ public class ProjectUserService : IProjectUserService
                 // Permission already exists, ignore
             }
         }
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "ProjectMember", scope.Alias, "ScopePermissionsAssigned");
     }
 
-    public async Task RevokeScopePermissionAsync(Guid projectId, Guid userId, Guid scopeId, ScopePermission permission, Guid currentUserId)
+    public async Task RevokeScopePermissionAsync(Guid projectId, Guid userId, Guid scopeId, ScopePermission permission, Guid currentUserId, string actorUsername)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageUsers))
         {
             throw new ForbiddenException("You do not have permission to revoke permissions in this project.");
+        }
+
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
+        {
+            throw new NotFoundException("Project not found.");
         }
 
         var projectUser = await _projectUserRepository.GetByUserAndProjectAsync(userId, projectId);
@@ -354,7 +377,6 @@ public class ProjectUserService : IProjectUserService
             throw new NotFoundException("User is not a member of this project.");
         }
 
-        // Verify scope belongs to the project
         var scope = await _scopeRepository.GetByIdAsync(scopeId);
         if (scope == null)
         {
@@ -367,14 +389,21 @@ public class ProjectUserService : IProjectUserService
         }
 
         await _projectUserRepository.RemoveScopePermissionAsync(projectUser.Id, scopeId, permission);
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "ProjectMember", scope.Alias, "ScopePermissionRevoked");
     }
 
-    public async Task<ProjectUserResponseDto> UpdateUserPermissionsAsync(Guid projectId, Guid userId, UpdateUserPermissionsDto dto, Guid currentUserId)
+    public async Task<ProjectUserResponseDto> UpdateUserPermissionsAsync(Guid projectId, Guid userId, UpdateUserPermissionsDto dto, Guid currentUserId, string actorUsername)
     {
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageUsers))
         {
             throw new ForbiddenException("You do not have permission to manage user permissions in this project.");
+        }
+
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
+        {
+            throw new NotFoundException("Project not found.");
         }
 
         var projectUser = await _projectUserRepository.GetByUserAndProjectWithPermissionsAsync(userId, projectId);
@@ -389,23 +418,25 @@ public class ProjectUserService : IProjectUserService
             throw new NotFoundException("User not found.");
         }
 
-        // Prevent user from removing ManageUsers permission from themselves
         if (currentUserId == userId && !dto.ProjectPermissions.Contains(ProjectPermission.ManageUsers))
         {
             throw new BadRequestException("You cannot remove ManageUsers permission from yourself.");
         }
 
-        // Get current permissions
         var currentProjectPermissions = await _projectUserRepository.GetUserProjectPermissionsAsync(userId, projectId);
         var currentScopePermissions = await _projectUserRepository.GetUserScopePermissionsAsync(userId, projectId);
 
-        // Remove all current project permissions
+        var oldValue = new
+        {
+            ProjectPermissions = currentProjectPermissions,
+            ScopePermissions = currentScopePermissions
+        };
+
         foreach (var permission in currentProjectPermissions)
         {
             await _projectUserRepository.RemoveProjectPermissionAsync(projectUser.Id, permission);
         }
 
-        // Remove all current scope permissions
         foreach (var scopeEntry in currentScopePermissions)
         {
             foreach (var permission in scopeEntry.Value)
@@ -414,7 +445,6 @@ public class ProjectUserService : IProjectUserService
             }
         }
 
-        // Add new project permissions
         foreach (var permission in dto.ProjectPermissions)
         {
             try
@@ -427,10 +457,8 @@ public class ProjectUserService : IProjectUserService
             }
         }
 
-        // Add new scope permissions
         foreach (var scopePermission in dto.ScopePermissions)
         {
-            // Verify scope belongs to the project
             var scope = await _scopeRepository.GetByIdAsync(scopePermission.Key);
             if (scope == null)
             {
@@ -454,6 +482,14 @@ public class ProjectUserService : IProjectUserService
                 }
             }
         }
+
+        var newValue = new
+        {
+            ProjectPermissions = dto.ProjectPermissions,
+            ScopePermissions = dto.ScopePermissions
+        };
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "ProjectMember", null, "PermissionsUpdated", oldValue, newValue);
 
         return await MapToResponseDtoAsync(projectUser, user);
     }

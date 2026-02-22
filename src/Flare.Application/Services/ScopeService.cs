@@ -1,3 +1,4 @@
+using Flare.Application.Audit;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
 using Flare.Domain.Constants;
@@ -16,38 +17,42 @@ public class ScopeService : IScopeService
     private readonly IProjectUserRepository _projectUserRepository;
     private readonly IPermissionService _permissionService;
     private readonly HybridCache _hybridCache;
+    private readonly IAuditLogger _auditLogger;
 
     public ScopeService(
         IScopeRepository scopeRepository,
         IProjectRepository projectRepository,
         IProjectUserRepository projectUserRepository,
         IPermissionService permissionService,
-        HybridCache hybridCache)
+        HybridCache hybridCache,
+        IAuditLogger auditLogger)
     {
         _scopeRepository = scopeRepository;
         _projectRepository = projectRepository;
         _projectUserRepository = projectUserRepository;
         _permissionService = permissionService;
         _hybridCache = hybridCache;
+        _auditLogger = auditLogger;
     }
 
-    public async Task<ScopeResponseDto> CreateAsync(Guid projectId, CreateScopeDto dto, Guid currentUserId)
+    public async Task<ScopeResponseDto> CreateAsync(Guid projectId, CreateScopeDto dto, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageScopes))
         {
             throw new ForbiddenException("You do not have permission to create scopes in this project.");
         }
 
-        if(!await _scopeRepository.ExistsByProjectAndAliasAsync(projectId, dto.Alias))
+        if (!await _scopeRepository.ExistsByProjectAndAliasAsync(projectId, dto.Alias))
         {
             throw new BadRequestException("Scope with this alias already exists.");
         }
-        var projectExists = await _projectRepository.ExistsByIdAsync(projectId);
-        if (!projectExists)
+
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
         {
             throw new NotFoundException("Project not found.");
         }
-        
+
         var projectScopes = await _scopeRepository.GetByProjectIdAsync(projectId);
         var index = projectScopes.Any() ? projectScopes.MaxBy(x => x.Index)!.Index : 0;
 
@@ -61,12 +66,15 @@ public class ScopeService : IScopeService
             CreatedAt = DateTime.UtcNow,
             Index = index
         };
-        
+
         await _scopeRepository.AddAsync(scope);
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Scope", dto.Alias, "Created");
+
         return MapToResponseDto(scope);
     }
 
-    public async Task<ScopeResponseDto> UpdateAsync(Guid scopeId, UpdateScopeDto dto, Guid currentUserId)
+    public async Task<ScopeResponseDto> UpdateAsync(Guid scopeId, UpdateScopeDto dto, Guid currentUserId, string actorUsername)
     {
         var scope = await _scopeRepository.GetByIdWithProjectAsync(scopeId);
         if (scope == null)
@@ -83,14 +91,17 @@ public class ScopeService : IScopeService
         scope.Alias = dto.Alias;
         scope.Name = dto.Name;
         scope.Description = dto.Description;
-        
+
         await _scopeRepository.UpdateAsync(scope);
         var scopeTag = CacheKeys.ProjectScopeCacheTag(scope.Project.Alias, previousAlias);
         await _hybridCache.RemoveByTagAsync(scopeTag);
+
+        _auditLogger.LogProjectAudit(scope.Project.Alias, actorUsername, "Scope", scope.Alias, "Updated");
+
         return MapToResponseDto(scope);
     }
 
-    public async Task DeleteAsync(Guid scopeId, Guid currentUserId)
+    public async Task DeleteAsync(Guid scopeId, Guid currentUserId, string actorUsername)
     {
         var scope = await _scopeRepository.GetByIdWithProjectAsync(scopeId);
         if (scope == null)
@@ -108,6 +119,8 @@ public class ScopeService : IScopeService
         await _scopeRepository.DeleteAsync(scopeId);
         var scopeTag = CacheKeys.ProjectScopeCacheTag(scope.Project.Alias, scope.Alias);
         await _hybridCache.RemoveByTagAsync(scopeTag);
+
+        _auditLogger.LogProjectAudit(scope.Project.Alias, actorUsername, "Scope", scope.Alias, "Deleted");
     }
 
     public async Task<List<ScopeResponseDto>> GetByProjectIdAsync(Guid projectId, Guid currentUserId)

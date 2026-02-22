@@ -45,4 +45,7 @@ public static class AuthenticationExtensions
         }
         return null;
     }
+
+    public static string? GetCurrentUsername(this HttpContext httpContext)
+        => httpContext.User.FindFirst("Username")?.Value;
 }

@@ -33,7 +33,8 @@ public class UserController : ControllerBase
         }
 
         var currentUserId = HttpContext.GetCurrentUserId()!.Value;
-        var user = await _userService.CreateUserAsync(dto, currentUserId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var user = await _userService.CreateUserAsync(dto, currentUserId, username);
 
         return CreatedAtAction(nameof(GetAllUsers), null, user);
     }
@@ -57,7 +58,8 @@ public class UserController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var user = await _userService.UpdateUserAsync(userId, dto);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var user = await _userService.UpdateUserAsync(userId, dto, username);
 
         return Ok(user);
     }
@@ -67,7 +69,8 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteUser(Guid userId)
     {
-        await _userService.SoftDeleteUserAsync(userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _userService.SoftDeleteUserAsync(userId, username);
         return NoContent();
     }
 }

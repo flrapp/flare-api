@@ -38,5 +38,6 @@ public class BearerApiKeyAuthorizationFilter : IAsyncAuthorizationFilter
             throw new UnauthorizedAccessException("Invalid API key");
 
         context.HttpContext.Items[HttpContextKeys.ProjectId] = project.Id;
+        context.HttpContext.Items[HttpContextKeys.ProjectAlias] = project.Alias;
     }
 }

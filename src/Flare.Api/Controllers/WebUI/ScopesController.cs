@@ -34,7 +34,8 @@ public class ScopesController : ControllerBase
         }
         
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _scopeService.CreateAsync(projectId, dto, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _scopeService.CreateAsync(projectId, dto, userId, username);
 
         return CreatedAtAction(nameof(GetScopes), new { projectId = result.ProjectId }, result);
     }
@@ -67,7 +68,8 @@ public class ScopesController : ControllerBase
             return BadRequest(ModelState);
         }
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _scopeService.UpdateAsync(scopeId, dto, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _scopeService.UpdateAsync(scopeId, dto, userId, username);
 
         return Ok(result);
     }
@@ -81,7 +83,8 @@ public class ScopesController : ControllerBase
     public async Task<IActionResult> DeleteScope(Guid scopeId)
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        await _scopeService.DeleteAsync(scopeId, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _scopeService.DeleteAsync(scopeId, userId, username);
 
         return NoContent();
     }

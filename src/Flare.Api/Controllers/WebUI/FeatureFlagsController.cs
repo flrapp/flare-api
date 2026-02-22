@@ -34,7 +34,8 @@ public class FeatureFlagsController : ControllerBase
         }
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _featureFlagService.CreateAsync(projectId, dto, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _featureFlagService.CreateAsync(projectId, dto, userId, username);
 
         return CreatedAtAction(nameof(GetFeatureFlags), new { projectId = result.ProjectId }, result);
     }
@@ -68,7 +69,8 @@ public class FeatureFlagsController : ControllerBase
         }
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _featureFlagService.UpdateAsync(featureFlagId, dto, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _featureFlagService.UpdateAsync(featureFlagId, dto, userId, username);
 
         return Ok(result);
     }
@@ -82,7 +84,8 @@ public class FeatureFlagsController : ControllerBase
     public async Task<IActionResult> DeleteFeatureFlag(Guid featureFlagId)
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        await _featureFlagService.DeleteAsync(featureFlagId, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _featureFlagService.DeleteAsync(featureFlagId, userId, username);
 
         return NoContent();
     }
@@ -102,7 +105,8 @@ public class FeatureFlagsController : ControllerBase
         }
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _featureFlagService.UpdateValueAsync(featureFlagId, dto, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _featureFlagService.UpdateValueAsync(featureFlagId, dto, userId, username);
 
         return Ok(result);
     }

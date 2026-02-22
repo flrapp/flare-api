@@ -44,9 +44,9 @@ public class DatabaseInitializer
 
         _logger.LogInformation("No users found, initializing database...");
 
-        var adminUsername = _configuration["USERNAME"];
-        var adminPassword = _configuration["PASSWORD"];
-        var adminFullName = _configuration["FULLNAME"] ?? "System Administrator";
+        var adminUsername = _configuration["ADMIN_USERNAME"];
+        var adminPassword = _configuration["ADMIN_PASSWORD"];
+        var adminFullName = _configuration["ADMIN_FULLNAME"] ?? "System Administrator";
 
         if (string.IsNullOrWhiteSpace(adminUsername) || string.IsNullOrWhiteSpace(adminPassword))
         {

@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
+using Flare.Api.Constants;
 using Flare.Api.Extensions;
 using Flare.Api.Middleware;
 using Flare.Application;
@@ -34,6 +35,7 @@ public class Startup
         services.AddHttpContextAccessor();
         services.AddControllers();
 
+        services.ConfigureTracingAndMetrics(Configuration);
 
         services.AddApiVersioning(options =>
         {
@@ -60,7 +62,7 @@ public class Startup
         app.UseExceptionHandler();
 
         app.UseRouting();
-        app.UseCors("UiCorsPolicy");
+        app.UseCors(CorsPolicyConstants.UiCorsPolicy);
         app.UseHttpsRedirection(); 
 
         app.UseAuthentication();

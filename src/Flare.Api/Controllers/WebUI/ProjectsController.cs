@@ -32,7 +32,8 @@ public class ProjectsController : ControllerBase
         }
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _projectService.CreateAsync(dto, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _projectService.CreateAsync(dto, userId, username);
 
         return CreatedAtAction(nameof(GetProject), new { projectId = result.Id }, result);
     }
@@ -78,7 +79,8 @@ public class ProjectsController : ControllerBase
         }
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _projectService.UpdateAsync(projectId, dto, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _projectService.UpdateAsync(projectId, dto, userId, username);
 
         return Ok(result);
     }
@@ -92,7 +94,8 @@ public class ProjectsController : ControllerBase
     public async Task<IActionResult> DeleteProject(Guid projectId)
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        await _projectService.DeleteAsync(projectId, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _projectService.DeleteAsync(projectId, userId, username);
 
         return NoContent();
     }
@@ -106,7 +109,8 @@ public class ProjectsController : ControllerBase
     public async Task<ActionResult<RegenerateApiKeyResponseDto>> RegenerateApiKey(Guid projectId)
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _projectService.RegenerateApiKeyAsync(projectId, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _projectService.RegenerateApiKeyAsync(projectId, userId, username);
 
         return Ok(result);
     }
@@ -120,7 +124,8 @@ public class ProjectsController : ControllerBase
     public async Task<IActionResult> ArchiveProject(Guid projectId)
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        await _projectService.ArchiveAsync(projectId, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _projectService.ArchiveAsync(projectId, userId, username);
 
         return NoContent();
     }
@@ -134,7 +139,8 @@ public class ProjectsController : ControllerBase
     public async Task<IActionResult> UnarchiveProject(Guid projectId)
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        await _projectService.UnarchiveAsync(projectId, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _projectService.UnarchiveAsync(projectId, userId, username);
 
         return NoContent();
     }

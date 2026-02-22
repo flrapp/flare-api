@@ -1,3 +1,4 @@
+using Flare.Application.Audit;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
 using Flare.Domain.Entities;
@@ -11,18 +12,21 @@ public class UserService : IUserService
     private readonly IUserRepository _userRepository;
     private readonly IProjectUserRepository _projectUserRepository;
     private readonly IAuthService _authService;
+    private readonly IAuditLogger _auditLogger;
 
     public UserService(
         IUserRepository userRepository,
         IProjectUserRepository projectUserRepository,
-        IAuthService authService)
+        IAuthService authService,
+        IAuditLogger auditLogger)
     {
         _userRepository = userRepository;
         _projectUserRepository = projectUserRepository;
         _authService = authService;
+        _auditLogger = auditLogger;
     }
 
-    public async Task<UserResponseDto> CreateUserAsync(CreateUserDto dto, Guid createdByUserId)
+    public async Task<UserResponseDto> CreateUserAsync(CreateUserDto dto, Guid createdByUserId, string actorUsername)
     {
         var exists = await _userRepository.ExistsByUsernameAsync(dto.Username);
 
@@ -44,6 +48,8 @@ public class UserService : IUserService
         };
 
         var createdUser = await _userRepository.AddAsync(user);
+
+        _auditLogger.LogUserAudit(createdUser.Username, actorUsername, "User", null, "Created");
 
         return new UserResponseDto
         {
@@ -91,7 +97,7 @@ public class UserService : IUserService
         };
     }
 
-    public async Task<UserResponseDto> UpdateUserAsync(Guid userId, UpdateUserDto dto)
+    public async Task<UserResponseDto> UpdateUserAsync(Guid userId, UpdateUserDto dto, string actorUsername)
     {
         var user = await _userRepository.GetByIdAsync(userId);
 
@@ -100,10 +106,15 @@ public class UserService : IUserService
             throw new InvalidOperationException("User not found");
         }
 
+        var oldValue = new { user.FullName, user.GlobalRole };
+
         user.FullName = dto.FullName;
         user.GlobalRole = dto.GlobalRole;
 
         await _userRepository.UpdateAsync(user);
+
+        var newValue = new { dto.FullName, dto.GlobalRole };
+        _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "Updated", oldValue, newValue);
 
         return new UserResponseDto
         {
@@ -116,7 +127,7 @@ public class UserService : IUserService
         };
     }
 
-    public async Task SoftDeleteUserAsync(Guid userId)
+    public async Task SoftDeleteUserAsync(Guid userId, string actorUsername)
     {
         var user = await _userRepository.GetByIdAsync(userId);
 
@@ -127,6 +138,8 @@ public class UserService : IUserService
 
         user.IsActive = false;
         await _userRepository.UpdateAsync(user);
+
+        _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "Deactivated");
     }
 
     public async Task<List<AvailableUserDto>> GetAvailableUsersForProjectAsync(Guid projectId)

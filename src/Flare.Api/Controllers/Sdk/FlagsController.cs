@@ -3,6 +3,7 @@ using Flare.Api.Attributes;
 using Flare.Api.Constants;
 using Flare.Application.DTOs.Sdk;
 using Flare.Application.Interfaces;
+using Flare.Application.Metrics;
 using Flare.Domain.Constants;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +20,12 @@ namespace Flare.Api.Controllers.Sdk;
 public class FlagsController : ControllerBase
 {
     private readonly IFeatureFlagService _featureFlagService;
+    private readonly FlareMetrics _metrics;
 
-    public FlagsController(IFeatureFlagService featureFlagService)
+    public FlagsController(IFeatureFlagService featureFlagService, FlareMetrics metrics)
     {
         _featureFlagService = featureFlagService;
+        _metrics = metrics;
     }
 
     /// <summary>
@@ -40,11 +43,14 @@ public class FlagsController : ControllerBase
         [FromBody] FlagEvaluationRequestDto request)
     {
         var projectId = (Guid)HttpContext.Items[HttpContextKeys.ProjectId]!;
+        var projectAlias = (string)HttpContext.Items[HttpContextKeys.ProjectAlias]!;
 
         var result = await _featureFlagService.EvaluateFlagAsync(
             projectId,
             request.FlagKey,
             request.Context);
+
+        _metrics.RecordEvaluation(projectAlias, request.FlagKey, request.Context.Scope);
 
         return Ok(result);
     }
@@ -64,8 +70,11 @@ public class FlagsController : ControllerBase
         [FromBody] BulkEvaluationRequestDto request)
     {
         var projectId = (Guid)HttpContext.Items[HttpContextKeys.ProjectId]!;
+        var projectAlias = (string)HttpContext.Items[HttpContextKeys.ProjectAlias]!;
 
         var result = await _featureFlagService.EvaluateAllFlagsAsync(projectId, request.Context);
+
+        _metrics.RecordBulkEvaluation(projectAlias, request.Context.Scope);
 
         return Ok(result);
     }

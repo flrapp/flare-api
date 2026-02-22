@@ -1,4 +1,6 @@
-﻿using Flare.Api.Constants;
+﻿using System;
+using System.Threading.Tasks;
+using Flare.Api.Constants;
 using Flare.Api.Filters;
 using Flare.Application.Authorization;
 using Flare.Application.Authorization.Requirements;
@@ -6,6 +8,14 @@ using Flare.Application.Interfaces;
 using Flare.Application.Services;
 using Flare.Domain.Enums;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 namespace Flare.Api.Extensions;
 
@@ -100,7 +110,7 @@ public static class ServiceCollectionRegistration
                 }
                 else
                 {
-                    var corsOrigins = configuration.GetSection("ALLOWED_ORIGINS").Get<string>();
+                    var corsOrigins = configuration.GetSection("CORS_ALLOWED_ORIGINS").Get<string>();
                     if(string.IsNullOrEmpty(corsOrigins))
                         throw new ArgumentException("ALLOWED_ORIGINS section not found");
 
@@ -120,6 +130,33 @@ public static class ServiceCollectionRegistration
             });
         });
 
+        return services;
+    }
+
+    public static IServiceCollection ConfigureTracingAndMetrics(this IServiceCollection services, IConfiguration configuration)
+    {
+        var otelEndpoint = configuration.GetValue<string>(EnvironmentVariablesNames.OtelEndpoint);
+        if (!string.IsNullOrWhiteSpace(otelEndpoint))
+        {
+            services.AddOpenTelemetry()
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddOtlpExporter(opts =>
+                    {
+                        opts.Endpoint = new Uri(otelEndpoint);
+                        opts.Protocol = OtlpExportProtocol.HttpProtobuf;
+                    }))
+                .WithMetrics(metrics => metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddMeter("Flare.Api")
+                    .AddOtlpExporter(opts =>
+                    {
+                        opts.Endpoint = new Uri(otelEndpoint);
+                        opts.Protocol = OtlpExportProtocol.HttpProtobuf;
+                    })
+                );
+        }
         return services;
     }
 }

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Flare.Application.Audit;
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
 using Flare.Domain.Constants;
@@ -15,18 +16,21 @@ public class ProjectService : IProjectService
     private readonly IProjectRepository _projectRepository;
     private readonly IPermissionService _permissionService;
     private readonly HybridCache _hybridCache;
+    private readonly IAuditLogger _auditLogger;
 
     public ProjectService(
         IProjectRepository projectRepository,
         IPermissionService permissionService,
-        HybridCache hybridCache)
+        HybridCache hybridCache,
+        IAuditLogger auditLogger)
     {
         _projectRepository = projectRepository;
         _permissionService = permissionService;
         _hybridCache = hybridCache;
+        _auditLogger = auditLogger;
     }
 
-    public async Task<ProjectDetailResponseDto> CreateAsync(CreateProjectDto dto, Guid creatorUserId)
+    public async Task<ProjectDetailResponseDto> CreateAsync(CreateProjectDto dto, Guid creatorUserId, string actorUsername)
     {
         if (await _projectRepository.ExistsByAliasAsync(dto.Alias))
         {
@@ -47,7 +51,7 @@ public class ProjectService : IProjectService
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        
+
 
         var defaultScopes = new List<Scope>
         {
@@ -97,15 +101,17 @@ public class ProjectService : IProjectService
         projectUser.ProjectPermissions = Enum.GetValues<ProjectPermission>()
             .Select(x => new ProjectUserProjectPermission
                 { Id = Guid.NewGuid(), Permission = x, ProjectUserId = projectUser.Id }).ToList();
-        
+
         project.Members = [projectUser];
-        
+
         await _projectRepository.AddAsync(project);
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Created");
 
         return MapToDetailResponseDto(project, true);
     }
 
-    public async Task<ProjectDetailResponseDto> UpdateAsync(Guid projectId, UpdateProjectDto dto, Guid currentUserId)
+    public async Task<ProjectDetailResponseDto> UpdateAsync(Guid projectId, UpdateProjectDto dto, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
@@ -118,18 +124,24 @@ public class ProjectService : IProjectService
             throw new NotFoundException("Project not found.");
         }
 
+        var oldValue = new { project.Name, project.Alias, project.Description };
+
         var previousAlias = project.Alias;
         project.Alias = dto.Alias;
         project.Name = dto.Name;
         project.Description = dto.Description;
         project.UpdatedAt = DateTime.UtcNow;
-        
+
         await _projectRepository.UpdateAsync(project);
         await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(previousAlias));
+
+        var newValue = new { dto.Name, dto.Alias, dto.Description };
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Updated", oldValue, newValue);
+
         return MapToDetailResponseDto(project, true);
     }
 
-    public async Task DeleteAsync(Guid projectId, Guid currentUserId)
+    public async Task DeleteAsync(Guid projectId, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.DeleteProject))
         {
@@ -142,8 +154,12 @@ public class ProjectService : IProjectService
             throw new NotFoundException("Project not found.");
         }
 
+        var projectAlias = project.Alias;
+
         await _projectRepository.DeleteAsync(projectId);
-        await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(project.Alias));
+        await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(projectAlias));
+
+        _auditLogger.LogProjectAudit(projectAlias, actorUsername, "Project", null, "Deleted");
     }
 
     public async Task<ProjectDetailResponseDto> GetByIdAsync(Guid projectId, Guid currentUserId)
@@ -165,7 +181,7 @@ public class ProjectService : IProjectService
         return projects.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<RegenerateApiKeyResponseDto> RegenerateApiKeyAsync(Guid projectId, Guid currentUserId)
+    public async Task<RegenerateApiKeyResponseDto> RegenerateApiKeyAsync(Guid projectId, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.RegenerateApiKey))
         {
@@ -186,6 +202,8 @@ public class ProjectService : IProjectService
         await _projectRepository.UpdateAsync(project);
         await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(project.Alias));
 
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "ApiKeyRegenerated");
+
         return new RegenerateApiKeyResponseDto
         {
             ApiKey = newApiKey,
@@ -193,7 +211,7 @@ public class ProjectService : IProjectService
         };
     }
 
-    public async Task ArchiveAsync(Guid projectId, Guid currentUserId)
+    public async Task ArchiveAsync(Guid projectId, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
@@ -215,9 +233,11 @@ public class ProjectService : IProjectService
         project.UpdatedAt = DateTime.UtcNow;
 
         await _projectRepository.UpdateAsync(project);
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Archived");
     }
 
-    public async Task UnarchiveAsync(Guid projectId, Guid currentUserId)
+    public async Task UnarchiveAsync(Guid projectId, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
@@ -239,6 +259,8 @@ public class ProjectService : IProjectService
         project.UpdatedAt = DateTime.UtcNow;
 
         await _projectRepository.UpdateAsync(project);
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Unarchived");
     }
 
     public async Task<MyPermissionsResponseDto> GetMyPermissionsAsync(Guid projectId, Guid currentUserId)

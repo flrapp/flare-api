@@ -1,5 +1,7 @@
-﻿using Flare.Application.Authorization.Handlers;
+﻿using Flare.Application.Audit;
+using Flare.Application.Authorization.Handlers;
 using Flare.Application.Interfaces;
+using Flare.Application.Metrics;
 using Flare.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +12,9 @@ public static class ServiceCollectionRegistration
 {
     public static IServiceCollection AddServices(this IServiceCollection services)
     {
+        services.AddSingleton<IAuditLogger, SerilogAuditLogger>();
+        services.AddSingleton<FlareMetrics>();
+
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPermissionService, PermissionService>();

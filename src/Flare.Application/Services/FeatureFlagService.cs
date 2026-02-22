@@ -1,3 +1,4 @@
+using Flare.Application.Audit;
 using Flare.Application.DTOs;
 using Flare.Application.DTOs.Sdk;
 using Flare.Application.Interfaces;
@@ -18,35 +19,38 @@ public class FeatureFlagService : IFeatureFlagService
     private readonly IScopeRepository _scopeRepository;
     private readonly IPermissionService _permissionService;
     private readonly HybridCache _hybridCache;
+    private readonly IAuditLogger _auditLogger;
 
     public FeatureFlagService(
         IFeatureFlagRepository featureFlagRepository,
         IProjectRepository projectRepository,
         IScopeRepository scopeRepository,
         IPermissionService permissionService,
-        HybridCache hybridCache)
+        HybridCache hybridCache,
+        IAuditLogger auditLogger)
     {
         _featureFlagRepository = featureFlagRepository;
         _projectRepository = projectRepository;
         _scopeRepository = scopeRepository;
         _permissionService = permissionService;
         _hybridCache = hybridCache;
+        _auditLogger = auditLogger;
     }
 
-    public async Task<FeatureFlagResponseDto> CreateAsync(Guid projectId, CreateFeatureFlagDto dto, Guid currentUserId)
+    public async Task<FeatureFlagResponseDto> CreateAsync(Guid projectId, CreateFeatureFlagDto dto, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageFeatureFlags))
         {
             throw new ForbiddenException("You do not have permission to create feature flags in this project.");
         }
 
-        var projectExists = await _projectRepository.ExistsByIdAsync(projectId);
-        if (!projectExists)
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
         {
             throw new NotFoundException("Project not found.");
         }
-        
-        if(await _featureFlagRepository.ExistsByProjectAndKeyAsync(projectId, dto.Key))
+
+        if (await _featureFlagRepository.ExistsByProjectAndKeyAsync(projectId, dto.Key))
             throw new InvalidOperationException("Feature flag with this key already exists in this project.");
 
         var featureFlag = new FeatureFlag
@@ -79,6 +83,8 @@ public class FeatureFlagService : IFeatureFlagService
 
             await _featureFlagRepository.AddAsync(featureFlag);
 
+            _auditLogger.LogProjectAudit(project.Alias, actorUsername, "FeatureFlag", null, "Created");
+
             return await MapToResponseDtoAsync(featureFlag);
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
@@ -87,7 +93,7 @@ public class FeatureFlagService : IFeatureFlagService
         }
     }
 
-    public async Task<FeatureFlagResponseDto> UpdateAsync(Guid featureFlagId, UpdateFeatureFlagDto dto, Guid currentUserId)
+    public async Task<FeatureFlagResponseDto> UpdateAsync(Guid featureFlagId, UpdateFeatureFlagDto dto, Guid currentUserId, string actorUsername)
     {
         var featureFlag = await _featureFlagRepository.GetByIdWithScopesAndProjectAsync(featureFlagId);
         if (featureFlag == null)
@@ -99,10 +105,10 @@ public class FeatureFlagService : IFeatureFlagService
         {
             throw new ForbiddenException("You do not have permission to update feature flags in this project.");
         }
-        
-        if(await _featureFlagRepository.ExistsByProjectAndKeyAsync(featureFlag.ProjectId, featureFlag.Key))
+
+        if (await _featureFlagRepository.ExistsByProjectAndKeyAsync(featureFlag.ProjectId, featureFlag.Key))
             throw new InvalidOperationException("Feature flag with this key already exists in this project.");
-        
+
         featureFlag.Name = dto.Name;
         featureFlag.Description = dto.Description;
         var previousKey = featureFlag.Key;
@@ -114,6 +120,9 @@ public class FeatureFlagService : IFeatureFlagService
             await _featureFlagRepository.UpdateAsync(featureFlag);
             var projectFeatureFlagTag = CacheKeys.FeatureFlagProjectCacheTag(featureFlag.Project.Alias, previousKey);
             await _hybridCache.RemoveByTagAsync(projectFeatureFlagTag);
+
+            _auditLogger.LogProjectAudit(featureFlag.Project.Alias, actorUsername, "FeatureFlag", null, "Updated");
+
             return await MapToResponseDtoAsync(featureFlag);
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
@@ -122,7 +131,7 @@ public class FeatureFlagService : IFeatureFlagService
         }
     }
 
-    public async Task DeleteAsync(Guid featureFlagId, Guid currentUserId)
+    public async Task DeleteAsync(Guid featureFlagId, Guid currentUserId, string actorUsername)
     {
         var featureFlag = await _featureFlagRepository.GetByIdWithScopesAndProjectAsync(featureFlagId);
         if (featureFlag == null)
@@ -130,7 +139,6 @@ public class FeatureFlagService : IFeatureFlagService
             throw new NotFoundException("Feature flag not found.");
         }
 
-        // Check permission
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, featureFlag.ProjectId, ProjectPermission.ManageFeatureFlags))
         {
             throw new ForbiddenException("You do not have permission to delete feature flags in this project.");
@@ -139,11 +147,12 @@ public class FeatureFlagService : IFeatureFlagService
         await _featureFlagRepository.DeleteAsync(featureFlagId);
         var projectFeatureFlagTag = CacheKeys.FeatureFlagProjectCacheTag(featureFlag.Project.Alias, featureFlag.Key);
         await _hybridCache.RemoveByTagAsync(projectFeatureFlagTag);
+
+        _auditLogger.LogProjectAudit(featureFlag.Project.Alias, actorUsername, "FeatureFlag", null, "Deleted");
     }
 
     public async Task<List<FeatureFlagResponseDto>> GetByProjectIdAsync(Guid projectId, Guid currentUserId)
     {
-        // Check if user has access to the project
         if (!await _permissionService.IsProjectMemberAsync(currentUserId, projectId))
         {
             throw new ForbiddenException("You do not have access to this project.");
@@ -154,7 +163,6 @@ public class FeatureFlagService : IFeatureFlagService
         var responseDtos = new List<FeatureFlagResponseDto>();
         foreach (var featureFlag in featureFlags)
         {
-            // Load with values for each feature flag
             var featureFlagWithValues = await _featureFlagRepository.GetByIdWithValuesAsync(featureFlag.Id);
             if (featureFlagWithValues != null)
             {
@@ -165,7 +173,7 @@ public class FeatureFlagService : IFeatureFlagService
         return responseDtos;
     }
 
-    public async Task<FeatureFlagValueDto> UpdateValueAsync(Guid featureFlagId, UpdateFeatureFlagValueDto dto, Guid currentUserId)
+    public async Task<FeatureFlagValueDto> UpdateValueAsync(Guid featureFlagId, UpdateFeatureFlagValueDto dto, Guid currentUserId, string actorUsername)
     {
         var featureFlag = await _featureFlagRepository.GetByIdWithScopesAndProjectAsync(featureFlagId);
         if (featureFlag == null)
@@ -173,13 +181,11 @@ public class FeatureFlagService : IFeatureFlagService
             throw new NotFoundException("Feature flag not found.");
         }
 
-        // Check scope-level permission for specific scope
         if (!await _permissionService.HasScopePermissionAsync(currentUserId, dto.ScopeId, ScopePermission.UpdateFeatureFlags))
         {
             throw new ForbiddenException("You do not have permission to update feature flag values for this scope.");
         }
 
-        // Verify scope belongs to the same project
         var scope = featureFlag.Project.Scopes.FirstOrDefault(s => s.Id == dto.ScopeId);
         if (scope == null)
         {
@@ -191,12 +197,12 @@ public class FeatureFlagService : IFeatureFlagService
             throw new BadRequestException("Scope does not belong to the same project as the feature flag.");
         }
 
-        // Find or create the feature flag value
         var featureFlagValue = await _featureFlagRepository.GetValueByFlagIdAndScopeIdAsync(featureFlag.Id, dto.ScopeId);
+
+        var previousIsEnabled = featureFlagValue?.IsEnabled ?? false;
 
         if (featureFlagValue == null)
         {
-            // Create new value if it doesn't exist
             featureFlagValue = new FeatureFlagValue
             {
                 Id = Guid.NewGuid(),
@@ -210,7 +216,6 @@ public class FeatureFlagService : IFeatureFlagService
         }
         else
         {
-            // Update existing value
             featureFlagValue.IsEnabled = dto.IsEnabled;
             featureFlagValue.UpdatedAt = DateTime.UtcNow;
         }
@@ -219,6 +224,11 @@ public class FeatureFlagService : IFeatureFlagService
         await _featureFlagRepository.UpdateValueAsync(featureFlagValue);
         var cacheKey = CacheKeys.FeatureFlagCacheKey(featureFlag.Project.Alias, featureFlagValue.Scope.Alias, featureFlag.Key);
         await _hybridCache.RemoveAsync(cacheKey);
+
+        _auditLogger.LogProjectAudit(
+            featureFlag.Project.Alias, actorUsername, "FeatureFlag", scope.Alias, "ValueUpdated",
+            previousIsEnabled,
+            dto.IsEnabled);
 
         return new FeatureFlagValueDto
         {
@@ -290,12 +300,10 @@ public class FeatureFlagService : IFeatureFlagService
     {
         var scopeAlias = context.Scope;
 
-        // Validate scope exists in project
         var scope = await _scopeRepository.GetByProjectAndAliasAsync(projectId, scopeAlias);
         if (scope == null)
             throw new NotFoundException($"Scope '{scopeAlias}' not found in project.");
 
-        // Get all feature flag values for this project and scope
         var featureFlagValues = await _featureFlagRepository.GetAllByProjectIdAndScopeAliasAsync(projectId, scopeAlias);
 
         var flags = featureFlagValues.Select(ffv => new FlagEvaluationResponseDto
@@ -319,7 +327,6 @@ public class FeatureFlagService : IFeatureFlagService
 
     private async Task<FeatureFlagResponseDto> MapToResponseDtoAsync(FeatureFlag featureFlag)
     {
-        // Load values with scopes if not already loaded
         if (featureFlag.Values == null || !featureFlag.Values.Any() || featureFlag.Values.First().Scope == null)
         {
             featureFlag = await _featureFlagRepository.GetByIdWithValuesAsync(featureFlag.Id)
