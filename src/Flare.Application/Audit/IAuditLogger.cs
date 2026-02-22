@@ -44,10 +44,14 @@ public interface IAuditLogger
 
     /// <summary>
     /// Logs a system-level user audit event (no state change).
+    /// <paramref name="subjectUsername"/> is the user being acted on;
+    /// <paramref name="actorUsername"/> is who performed the action
+    /// (identical to <paramref name="subjectUsername"/> for self-service operations).
     /// Writes using the "Flare.Audit.User" source context.
     /// </summary>
     void LogUserAudit(
-        string username,
+        string subjectUsername,
+        string actorUsername,
         string entityType,
         string? scope,
         string action);
@@ -59,7 +63,8 @@ public interface IAuditLogger
     /// Writes using the "Flare.Audit.User" source context.
     /// </summary>
     void LogUserAudit(
-        string username,
+        string subjectUsername,
+        string actorUsername,
         string entityType,
         string? scope,
         string action,

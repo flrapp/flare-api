@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Flare.Application.Audit;
 using Flare.Application.DTOs;
 using Flare.Application.Extensions;
 using Flare.Application.Interfaces;
@@ -13,11 +14,13 @@ namespace Flare.Api.Controllers.WebUI;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IAuditLogger _auditLogger;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService, IAuditLogger auditLogger, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _auditLogger = auditLogger;
         _logger = logger;
     }
 
@@ -46,6 +49,7 @@ public class AuthController : ControllerBase
             await _authService.UpdateLastLoginAsync(result.UserId);
 
             _logger.LogInformation("User {Username} logged in successfully", result.Username);
+            _auditLogger.LogUserAudit(result.Username, result.Username, "User", null, "LoggedIn");
 
             return Ok(result);
         }
@@ -63,10 +67,11 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var username = User.FindFirst("Username")?.Value;
+            var username = HttpContext.GetCurrentUsername() ?? "unknown";
             await HttpContext.SignOutUserAsync();
 
             _logger.LogInformation("User {Username} logged out successfully", username);
+            _auditLogger.LogUserAudit(username, username, "User", null, "LoggedOut");
 
             return Ok(new { message = "Logged out successfully" });
         }
@@ -137,9 +142,12 @@ public class AuthController : ControllerBase
                 return Unauthorized(new { message = "User not authenticated" });
             }
 
+            var username = HttpContext.GetCurrentUsername() ?? "unknown";
+
             await _authService.ChangePasswordAsync(userId.Value, dto);
 
             _logger.LogInformation("User {UserId} changed password successfully", userId.Value);
+            _auditLogger.LogUserAudit(username, username, "User", null, "PasswordChanged");
 
             return Ok(new { message = "Password changed successfully" });
         }

@@ -66,19 +66,21 @@ public sealed class SerilogAuditLogger : IAuditLogger
 
     /// <inheritdoc/>
     public void LogUserAudit(
-        string username,
+        string subjectUsername,
+        string actorUsername,
         string entityType,
         string? scope,
         string action)
     {
         _userLogger.LogInformation(
-            "Audit: {Action} on {EntityType} by {Username} [Scope={Scope}]",
-            action, entityType, username, scope);
+            "Audit: {Action} on {EntityType} [{SubjectUsername}] by {ActorUsername} [Scope={Scope}]",
+            action, entityType, subjectUsername, actorUsername, scope);
     }
 
     /// <inheritdoc/>
     public void LogUserAudit(
-        string username,
+        string subjectUsername,
+        string actorUsername,
         string entityType,
         string? scope,
         string action,
@@ -86,7 +88,7 @@ public sealed class SerilogAuditLogger : IAuditLogger
         object newValue)
     {
         _userLogger.LogInformation(
-            "Audit: {Action} on {EntityType} by {Username} [Scope={Scope} OldValue={@OldValue} NewValue={@NewValue}]",
-            action, entityType, username, scope, oldValue, newValue);
+            "Audit: {Action} on {EntityType} [{SubjectUsername}] by {ActorUsername} [Scope={Scope} OldValue={@OldValue} NewValue={@NewValue}]",
+            action, entityType, subjectUsername, actorUsername, scope, oldValue, newValue);
     }
 }
