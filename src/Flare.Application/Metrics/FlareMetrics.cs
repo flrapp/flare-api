@@ -39,8 +39,8 @@ public sealed class FlareMetrics
     public void RecordEvaluation(string projectAlias, string flagKey, string scope)
     {
         _flagEvaluations.Add(1,
-            new KeyValuePair<string, object?>("project.alias", projectAlias),
-            new KeyValuePair<string, object?>("flag.key", flagKey),
+            new KeyValuePair<string, object?>("project", projectAlias),
+            new KeyValuePair<string, object?>("flag", flagKey),
             new KeyValuePair<string, object?>("scope", scope));
     }
 
@@ -54,7 +54,7 @@ public sealed class FlareMetrics
     public void RecordBulkEvaluation(string projectAlias, string scope)
     {
         _flagEvaluations.Add(1,
-            new KeyValuePair<string, object?>("project.alias", projectAlias),
+            new KeyValuePair<string, object?>("project", projectAlias),
             new KeyValuePair<string, object?>("scope", scope));
     }
 }
