@@ -58,7 +58,6 @@ public class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IApiVersionDescriptionProvider apiVersionDescriptionProvider)
     {
         app.UseExceptionHandler();
-        app.UseRequestLogging();
 
         app.UseRouting();
         app.UseCors("UiCorsPolicy");

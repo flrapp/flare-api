@@ -1,5 +1,4 @@
 using Flare.Infrastructure.Initialization;
-using Flare.Infrastructure.Observability;
 using Serilog;
 
 namespace Flare.Api;
@@ -9,9 +8,7 @@ public class Program
     public static async Task Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
             .WriteTo.Console()
-            .Enrich.FromLogContext()
             .CreateBootstrapLogger();
 
         try
@@ -44,8 +41,10 @@ public class Program
                 config.AddEnvironmentVariables("FLARE_ADMIN_");
                 config.AddEnvironmentVariables("FLARE_CORS_");
             })
-            .UseSerilog((context, services, configuration) =>
-                LoggingConfiguration.ConfigureSerilog(configuration, context.Configuration, services))
+            .UseSerilog((context, services, configuration) => configuration
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext())
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseStartup<Startup>();
