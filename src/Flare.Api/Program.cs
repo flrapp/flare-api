@@ -1,3 +1,4 @@
+using Flare.Api.Constants;
 using Flare.Infrastructure.Initialization;
 using Serilog;
 using Serilog.Sinks.OpenTelemetry;
@@ -39,7 +40,7 @@ public class Program
         Host.CreateDefaultBuilder(args)
             .ConfigureAppConfiguration((_, config) =>
             {
-                config.AddEnvironmentVariables("FLARE_");
+                config.AddEnvironmentVariables(EnvironmentVariablesNames.MainEnvironmentName);
             })
             .UseSerilog((context, services, configuration) =>
             {
@@ -49,7 +50,7 @@ public class Program
                     .Enrich.FromLogContext()
                     .WriteTo.Console();
                     
-                var otelEndpoint = context.Configuration.GetValue<string>("OTEL_ENDPOINT");
+                var otelEndpoint = context.Configuration.GetValue<string>(EnvironmentVariablesNames.OtelEndpoint);
                 if (otelEndpoint != null)
                 {
                     configuration.WriteTo.OpenTelemetry(opts =>

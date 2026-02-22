@@ -136,7 +136,6 @@ public static class ServiceCollectionRegistration
     public static IServiceCollection ConfigureTracingAndMetrics(this IServiceCollection services, IConfiguration configuration)
     {
         var otelEndpoint = configuration.GetValue<string>(EnvironmentVariablesNames.OtelEndpoint);
-
         if (!string.IsNullOrWhiteSpace(otelEndpoint))
         {
             services.AddOpenTelemetry()
