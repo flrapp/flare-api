@@ -90,7 +90,7 @@ public sealed class SerilogAuditLogger : IAuditLogger
         object newValue)
     {
         _userLogger.LogInformation(
-            "Audit: {Action} on {EntityType} by {Username} [Scope={Scope} Timestamp={Timestamp} OldValue={@OldValue} NewValue={@NewValue}]",
+            "Audit: {Action} on {EntityType} by {Username} [Scope={Scope} Timestamp={Timestamp} OldValue={OldValue} NewValue={NewValue}",
             action, entityType, username, scope, timestamp, oldValue, newValue);
     }
 }
