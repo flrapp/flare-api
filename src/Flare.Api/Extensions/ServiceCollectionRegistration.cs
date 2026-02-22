@@ -100,7 +100,7 @@ public static class ServiceCollectionRegistration
                 }
                 else
                 {
-                    var corsOrigins = configuration.GetSection("ALLOWED_ORIGINS").Get<string>();
+                    var corsOrigins = configuration.GetSection("CORS_ALLOWED_ORIGINS").Get<string>();
                     if(string.IsNullOrEmpty(corsOrigins))
                         throw new ArgumentException("ALLOWED_ORIGINS section not found");
 

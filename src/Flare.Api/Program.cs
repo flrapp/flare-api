@@ -30,7 +30,7 @@ public class Program
         }
         finally
         {
-            Log.CloseAndFlush();
+            await Log.CloseAndFlushAsync();
         }
     }
 
@@ -38,8 +38,7 @@ public class Program
         Host.CreateDefaultBuilder(args)
             .ConfigureAppConfiguration((_, config) =>
             {
-                config.AddEnvironmentVariables("FLARE_ADMIN_");
-                config.AddEnvironmentVariables("FLARE_CORS_");
+                config.AddEnvironmentVariables("FLARE_");
             })
             .UseSerilog((context, services, configuration) => configuration
                 .ReadFrom.Configuration(context.Configuration)
