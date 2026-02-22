@@ -50,7 +50,8 @@ public class ProjectUsersController : ControllerBase
         }
         
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _projectUserService.InviteUserAsync(projectId, dto, userId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _projectUserService.InviteUserAsync(projectId, dto, userId, username);
 
         return CreatedAtAction(nameof(GetProjectUsers), new { projectId }, result);
     }
@@ -78,7 +79,8 @@ public class ProjectUsersController : ControllerBase
     public async Task<IActionResult> RemoveUser(Guid projectId, Guid userId)
     {
         var currentUserId = HttpContext.GetCurrentUserId()!.Value;
-        await _projectUserService.RemoveUserAsync(projectId, userId, currentUserId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _projectUserService.RemoveUserAsync(projectId, userId, currentUserId, username);
 
         return NoContent();
     }
@@ -98,7 +100,8 @@ public class ProjectUsersController : ControllerBase
         }
 
         var currentUserId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _projectUserService.UpdateUserPermissionsAsync(projectId, userId, dto, currentUserId);
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        var result = await _projectUserService.UpdateUserPermissionsAsync(projectId, userId, dto, currentUserId, username);
 
         return Ok(result);
     }
