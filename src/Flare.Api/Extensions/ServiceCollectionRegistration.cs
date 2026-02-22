@@ -150,6 +150,7 @@ public static class ServiceCollectionRegistration
                 .WithMetrics(metrics => metrics
                     .AddAspNetCoreInstrumentation()
                     .AddRuntimeInstrumentation()
+                    .AddMeter("Flare.Api")
                     .AddOtlpExporter(opts =>
                     {
                         opts.Endpoint = new Uri(otelEndpoint);
