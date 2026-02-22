@@ -6,6 +6,9 @@ using Flare.Application.Interfaces;
 using Flare.Application.Services;
 using Flare.Domain.Enums;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 namespace Flare.Api.Extensions;
 
@@ -120,6 +123,33 @@ public static class ServiceCollectionRegistration
             });
         });
 
+        return services;
+    }
+
+    public static IServiceCollection ConfigureTracingAndMetrics(this IServiceCollection services, IConfiguration configuration)
+    {
+        var otelEndpoint = configuration.GetValue<string>(EnvironmentVariablesNames.OtelEndpoint);
+
+        if (!string.IsNullOrWhiteSpace(otelEndpoint))
+        {
+            services.AddOpenTelemetry()
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddOtlpExporter(opts =>
+                    {
+                        opts.Endpoint = new Uri(otelEndpoint);
+                        opts.Protocol = OtlpExportProtocol.HttpProtobuf;
+                    }))
+                .WithMetrics(metrics => metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddOtlpExporter(opts =>
+                    {
+                        opts.Endpoint = new Uri(otelEndpoint);
+                        opts.Protocol = OtlpExportProtocol.HttpProtobuf;
+                    })
+                );
+        }
         return services;
     }
 }

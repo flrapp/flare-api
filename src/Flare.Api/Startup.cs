@@ -35,6 +35,7 @@ public class Startup
         services.AddHttpContextAccessor();
         services.AddControllers();
 
+        services.ConfigureTracingAndMetrics(Configuration);
 
         services.AddApiVersioning(options =>
         {
