@@ -14,17 +14,20 @@ namespace Flare.Application.Services;
 public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _projectRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IPermissionService _permissionService;
     private readonly HybridCache _hybridCache;
     private readonly IAuditLogger _auditLogger;
 
     public ProjectService(
         IProjectRepository projectRepository,
+        IUserRepository userRepository,
         IPermissionService permissionService,
         HybridCache hybridCache,
         IAuditLogger auditLogger)
     {
         _projectRepository = projectRepository;
+        _userRepository = userRepository;
         _permissionService = permissionService;
         _hybridCache = hybridCache;
         _auditLogger = auditLogger;
@@ -191,7 +194,16 @@ public class ProjectService : IProjectService
 
     public async Task<List<ProjectResponseDto>> GetUserProjectsAsync(Guid userId)
     {
-        var projects = await _projectRepository.GetByUserIdAsync(userId);
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+        {
+            throw new NotFoundException("User not found.");
+        }
+
+        var projects = user.GlobalRole == GlobalRole.Admin
+            ? await _projectRepository.GetAllAsync()
+            : await _projectRepository.GetByUserIdAsync(userId);
+
         return projects.Select(MapToResponseDto).ToList();
     }
 
