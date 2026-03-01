@@ -25,15 +25,6 @@ public class DatabaseInitializer
 
     public async Task InitializeAsync()
     {
-        var pendingMigrations = await _dbContext.Database.GetPendingMigrationsAsync();
-        var migrations = pendingMigrations.ToList();
-        if (migrations.Count != 0)
-        {
-            _logger.LogInformation("Applying {Count} pending migrations...", migrations.Count());
-            await _dbContext.Database.MigrateAsync();
-            _logger.LogInformation("Migrations applied successfully");
-        }
-        
         var usersExist = await _dbContext.Users.AnyAsync();
 
         if (usersExist)

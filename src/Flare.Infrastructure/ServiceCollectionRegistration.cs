@@ -23,6 +23,7 @@ public static class ServiceCollectionRegistration
         services.AddScoped<IFeatureFlagRepository, FeatureFlagRepository>();
         services.AddScoped<IProjectUserRepository, ProjectUserRepository>();
 
+        services.AddScoped<MigrationRunner>();
         services.AddScoped<DatabaseInitializer>();
 
         return services;

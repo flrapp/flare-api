@@ -20,6 +20,9 @@ public class Program
 
             using (var scope = host.Services.CreateScope())
             {
+                var migrationRunner = scope.ServiceProvider.GetRequiredService<MigrationRunner>();
+                await migrationRunner.RunAsync();
+
                 var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
                 await initializer.InitializeAsync();
             }
