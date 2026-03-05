@@ -10,7 +10,7 @@ public class TargetingRuleConfiguration : IEntityTypeConfiguration<TargetingRule
     {
         builder.HasKey(e => e.Id);
 
-        builder.HasIndex(e => new { e.FeatureFlagValueId, e.Priority }).IsUnique();
+        builder.HasIndex(e => new { e.FeatureFlagValueId, e.Priority });
 
         builder.HasOne(e => e.FeatureFlagValue)
             .WithMany(v => v.TargetingRules)
