@@ -33,11 +33,23 @@ public class FeatureFlagRepository : IFeatureFlagRepository
             .FirstOrDefaultAsync(ffv => ffv.FeatureFlagId == featureFlagId && ffv.ScopeId == scopeId);
     }
 
+    public async Task<FeatureFlagValue?> GetValueByIdWithNavigationsAsync(Guid flagValueId)
+    {
+        return await _context.FeatureFlagValues
+            .Include(v => v.Scope)
+            .Include(v => v.FeatureFlag)
+                .ThenInclude(f => f.Project)
+            .FirstOrDefaultAsync(v => v.Id == flagValueId);
+    }
+
     public async Task<FeatureFlag?> GetByIdWithValuesAsync(Guid featureFlagId)
     {
         return await _context.FeatureFlags
             .Include(f => f.Values)
                 .ThenInclude(v => v.Scope)
+            .Include(f => f.Values)
+                .ThenInclude(v => v.TargetingRules)
+                    .ThenInclude(r => r.Conditions)
             .FirstOrDefaultAsync(f => f.Id == featureFlagId);
     }
 
@@ -53,6 +65,9 @@ public class FeatureFlagRepository : IFeatureFlagRepository
             .Where(f => f.ProjectId == projectId)
             .Include(f => f.Values)
                 .ThenInclude(v => v.Scope)
+            .Include(f => f.Values)
+                .ThenInclude(v => v.TargetingRules)
+                    .ThenInclude(r => r.Conditions)
             .OrderByDescending(f => f.CreatedAt)
             .ToListAsync();
     }

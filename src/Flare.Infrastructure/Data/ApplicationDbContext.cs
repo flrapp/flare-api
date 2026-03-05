@@ -14,6 +14,8 @@ public class ApplicationDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<Scope> Scopes { get; set; }
     public DbSet<FeatureFlag> FeatureFlags { get; set; }
     public DbSet<FeatureFlagValue> FeatureFlagValues { get; set; }
+    public DbSet<TargetingRule> TargetingRules { get; set; }
+    public DbSet<TargetingCondition> TargetingConditions { get; set; }
     public DbSet<ProjectUserProjectPermission> ProjectUserProjectPermissions { get; set; }
     public DbSet<ProjectUserScopePermission> ProjectUserScopePermissions { get; set; }
     

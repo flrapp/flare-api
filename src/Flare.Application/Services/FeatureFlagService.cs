@@ -337,7 +337,23 @@ public class FeatureFlagService : IFeatureFlagService
                 ScopeName = v.Scope.Name,
                 ScopeAlias = v.Scope.Alias,
                 IsEnabled = v.IsEnabled,
-                UpdatedAt = v.UpdatedAt
+                UpdatedAt = v.UpdatedAt,
+                TargetingRules = v.TargetingRules
+                    .OrderBy(r => r.Priority)
+                    .Select(r => new TargetingRuleDto
+                    {
+                        Id = r.Id,
+                        FeatureFlagValueId = r.FeatureFlagValueId,
+                        Priority = r.Priority,
+                        ServeValue = r.ServeValue,
+                        Conditions = r.Conditions.Select(c => new TargetingConditionDto
+                        {
+                            Id = c.Id,
+                            AttributeKey = c.AttributeKey,
+                            Operator = c.Operator,
+                            Value = c.Value
+                        }).ToList()
+                    }).ToList()
             }).ToList()
         };
     }
