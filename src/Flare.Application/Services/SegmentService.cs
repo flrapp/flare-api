@@ -29,8 +29,8 @@ public class SegmentService : ISegmentService
 
     public async Task<List<SegmentResponseDto>> GetByProjectIdAsync(Guid projectId, Guid currentUserId)
     {
-        if (!await _permissionService.IsProjectMemberAsync(currentUserId, projectId))
-            throw new ForbiddenException("You do not have access to this project.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ViewSegments))
+            throw new ForbiddenException("You do not have permission to view segments in this project.");
 
         var project = await _projectRepository.GetByIdAsync(projectId);
         if (project == null)
@@ -54,15 +54,15 @@ public class SegmentService : ISegmentService
         if (segment == null)
             throw new NotFoundException("Segment not found.");
 
-        if (!await _permissionService.IsProjectMemberAsync(currentUserId, segment.ProjectId))
-            throw new ForbiddenException("You do not have access to this project.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ViewSegments))
+            throw new ForbiddenException("You do not have permission to view segments in this project.");
 
         return MapToDetailResponseDto(segment);
     }
 
     public async Task<SegmentResponseDto> CreateAsync(Guid projectId, CreateSegmentDto dto, Guid currentUserId, string actorUsername)
     {
-        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageFeatureFlags))
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageSegments))
             throw new ForbiddenException("You do not have permission to manage segments in this project.");
 
         var project = await _projectRepository.GetByIdAsync(projectId);
@@ -95,7 +95,7 @@ public class SegmentService : ISegmentService
         if (segment == null)
             throw new NotFoundException("Segment not found.");
 
-        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ManageFeatureFlags))
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ManageSegments))
             throw new ForbiddenException("You do not have permission to manage segments in this project.");
 
         if (segment.Name != dto.Name && await _segmentRepository.ExistsByProjectAndNameAsync(segment.ProjectId, dto.Name, excludeSegmentId: segmentId))
@@ -118,7 +118,7 @@ public class SegmentService : ISegmentService
         if (segment == null)
             throw new NotFoundException("Segment not found.");
 
-        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ManageFeatureFlags))
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ManageSegments))
             throw new ForbiddenException("You do not have permission to manage segments in this project.");
 
         await _segmentRepository.DeleteAsync(segmentId);
@@ -132,8 +132,8 @@ public class SegmentService : ISegmentService
         if (segment == null)
             throw new NotFoundException("Segment not found.");
 
-        if (!await _permissionService.IsProjectMemberAsync(currentUserId, segment.ProjectId))
-            throw new ForbiddenException("You do not have access to this project.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ViewSegments))
+            throw new ForbiddenException("You do not have permission to view segments in this project.");
 
         var members = await _segmentRepository.GetMembersBySegmentIdAsync(segmentId);
         return members.Select(MapMemberToDto).ToList();
@@ -145,7 +145,7 @@ public class SegmentService : ISegmentService
         if (segment == null)
             throw new NotFoundException("Segment not found.");
 
-        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ManageFeatureFlags))
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ManageSegments))
             throw new ForbiddenException("You do not have permission to manage segments in this project.");
 
         var uniqueKeys = dto.TargetingKeys.Distinct(StringComparer.Ordinal).ToList();
@@ -179,7 +179,7 @@ public class SegmentService : ISegmentService
         if (segment == null)
             throw new NotFoundException("Segment not found.");
 
-        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ManageFeatureFlags))
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ManageSegments))
             throw new ForbiddenException("You do not have permission to manage segments in this project.");
 
         if (!await _segmentRepository.MemberExistsAsync(segmentId, targetingKey))
@@ -201,8 +201,7 @@ public class SegmentService : ISegmentService
             Name = segment.Name,
             Description = segment.Description,
             MemberCount = memberCount,
-            CreatedAt = segment.CreatedAt,
-            UpdatedAt = segment.UpdatedAt
+            CreatedAt = segment.CreatedAt
         };
     }
 

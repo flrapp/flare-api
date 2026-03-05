@@ -8,5 +8,4 @@ public class SegmentResponseDto
     public string? Description { get; set; }
     public int MemberCount { get; set; }
     public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
 }

@@ -39,8 +39,8 @@ public class TargetingRuleService : ITargetingRuleService
         if (flagValue == null)
             throw new NotFoundException("Feature flag value not found.");
 
-        if (!await _permissionService.HasScopePermissionAsync(currentUserId, flagValue.ScopeId, ScopePermission.ReadFeatureFlags))
-            throw new ForbiddenException("You do not have permission to read feature flags for this scope.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ViewTargetingRules))
+            throw new ForbiddenException("You do not have permission to view targeting rules for this project.");
 
         var rules = await _targetingRuleRepository.GetByFlagValueIdAsync(flagValueId);
         return rules.Select(MapRuleToDto).ToList();
@@ -52,8 +52,8 @@ public class TargetingRuleService : ITargetingRuleService
         if (flagValue == null)
             throw new NotFoundException("Feature flag value not found.");
 
-        if (!await _permissionService.HasScopePermissionAsync(currentUserId, flagValue.ScopeId, ScopePermission.UpdateFeatureFlags))
-            throw new ForbiddenException("You do not have permission to update feature flags for this scope.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ManageTargetingRules))
+            throw new ForbiddenException("You do not have permission to manage targeting rules for this project.");
 
         foreach (var condition in dto.Conditions)
             ValidateConditionValue(condition.Operator, condition.Value);
@@ -93,8 +93,8 @@ public class TargetingRuleService : ITargetingRuleService
 
         var flagValue = rule.FeatureFlagValue;
 
-        if (!await _permissionService.HasScopePermissionAsync(currentUserId, flagValue.ScopeId, ScopePermission.UpdateFeatureFlags))
-            throw new ForbiddenException("You do not have permission to update feature flags for this scope.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ManageTargetingRules))
+            throw new ForbiddenException("You do not have permission to manage targeting rules for this project.");
 
         if (dto.Priority != rule.Priority && await _targetingRuleRepository.PriorityExistsAsync(flagValue.Id, dto.Priority, excludeRuleId: ruleId))
             throw new BadRequestException($"Priority {dto.Priority} is already in use by another rule for this flag value.");
@@ -120,8 +120,8 @@ public class TargetingRuleService : ITargetingRuleService
 
         var flagValue = rule.FeatureFlagValue;
 
-        if (!await _permissionService.HasScopePermissionAsync(currentUserId, flagValue.ScopeId, ScopePermission.UpdateFeatureFlags))
-            throw new ForbiddenException("You do not have permission to update feature flags for this scope.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ManageTargetingRules))
+            throw new ForbiddenException("You do not have permission to manage targeting rules for this project.");
 
         var deletedPriority = rule.Priority;
         await _targetingRuleRepository.DeleteAsync(ruleId);
@@ -148,8 +148,8 @@ public class TargetingRuleService : ITargetingRuleService
         if (flagValue == null)
             throw new NotFoundException("Feature flag value not found.");
 
-        if (!await _permissionService.HasScopePermissionAsync(currentUserId, flagValue.ScopeId, ScopePermission.UpdateFeatureFlags))
-            throw new ForbiddenException("You do not have permission to update feature flags for this scope.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ManageTargetingRules))
+            throw new ForbiddenException("You do not have permission to manage targeting rules for this project.");
 
         var existingRules = await _targetingRuleRepository.GetByFlagValueIdAsync(flagValueId);
         var existingIds = existingRules.Select(r => r.Id).ToHashSet();
@@ -180,8 +180,8 @@ public class TargetingRuleService : ITargetingRuleService
 
         var flagValue = rule.FeatureFlagValue;
 
-        if (!await _permissionService.HasScopePermissionAsync(currentUserId, flagValue.ScopeId, ScopePermission.UpdateFeatureFlags))
-            throw new ForbiddenException("You do not have permission to update feature flags for this scope.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ManageTargetingRules))
+            throw new ForbiddenException("You do not have permission to manage targeting rules for this project.");
 
         ValidateConditionValue(dto.Operator, dto.Value);
 
@@ -214,8 +214,8 @@ public class TargetingRuleService : ITargetingRuleService
 
         var flagValue = condition.TargetingRule.FeatureFlagValue;
 
-        if (!await _permissionService.HasScopePermissionAsync(currentUserId, flagValue.ScopeId, ScopePermission.UpdateFeatureFlags))
-            throw new ForbiddenException("You do not have permission to update feature flags for this scope.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ManageTargetingRules))
+            throw new ForbiddenException("You do not have permission to manage targeting rules for this project.");
 
         ValidateConditionValue(dto.Operator, dto.Value);
 
@@ -242,8 +242,8 @@ public class TargetingRuleService : ITargetingRuleService
         var rule = condition.TargetingRule;
         var flagValue = rule.FeatureFlagValue;
 
-        if (!await _permissionService.HasScopePermissionAsync(currentUserId, flagValue.ScopeId, ScopePermission.UpdateFeatureFlags))
-            throw new ForbiddenException("You do not have permission to update feature flags for this scope.");
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ManageTargetingRules))
+            throw new ForbiddenException("You do not have permission to manage targeting rules for this project.");
 
         if (rule.Conditions.Count <= 1)
             throw new BadRequestException("A rule must have at least one condition.");
