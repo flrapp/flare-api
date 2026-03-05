@@ -279,6 +279,12 @@ public class TargetingRuleService : ITargetingRuleService
             if (!decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
                 throw new BadRequestException($"Value for operator '{op}' must be a numeric value.");
         }
+
+        if (op is ComparisonOperator.InSegment or ComparisonOperator.NotInSegment)
+        {
+            if (!Guid.TryParse(value, out _))
+                throw new BadRequestException($"Value for operator '{op}' must be a valid segment ID (UUID).");
+        }
     }
 
     private async Task InvalidateFlagCacheAsync(Domain.Entities.FeatureFlagValue flagValue)

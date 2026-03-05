@@ -10,5 +10,7 @@ public enum ComparisonOperator
     StartsWith,
     EndsWith,
     GreaterThan,
-    LessThan
+    LessThan,
+    InSegment,
+    NotInSegment
 }

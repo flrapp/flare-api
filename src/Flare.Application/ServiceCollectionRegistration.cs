@@ -23,6 +23,7 @@ public static class ServiceCollectionRegistration
         services.AddScoped<IFeatureFlagService, FeatureFlagService>();
         services.AddScoped<IProjectUserService, ProjectUserService>();
         services.AddScoped<ITargetingRuleService, TargetingRuleService>();
+        services.AddScoped<ISegmentService, SegmentService>();
         return services;
     }
     

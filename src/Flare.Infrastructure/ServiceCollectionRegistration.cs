@@ -27,6 +27,7 @@ public static class ServiceCollectionRegistration
         services.AddScoped<IFeatureFlagRepository, FeatureFlagRepository>();
         services.AddScoped<IProjectUserRepository, ProjectUserRepository>();
         services.AddScoped<ITargetingRuleRepository, TargetingRuleRepository>();
+        services.AddScoped<ISegmentRepository, SegmentRepository>();
 
         services.AddScoped<DatabaseInitializer>();
 

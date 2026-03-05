@@ -132,6 +132,8 @@ public class FeatureFlagRepository : IFeatureFlagRepository
     {
         return await _context.FeatureFlagValues
             .Include(ffv => ffv.Scope)
+            .Include(ffv => ffv.TargetingRules)
+                .ThenInclude(r => r.Conditions)
             .Where(ffv => ffv.FeatureFlag.Key == featureFlagKey &&
                           ffv.Scope.Alias == scopeAlias &&
                           ffv.FeatureFlag.ProjectId == projectId)
@@ -143,6 +145,8 @@ public class FeatureFlagRepository : IFeatureFlagRepository
         return await _context.FeatureFlagValues
             .Include(ffv => ffv.Scope)
             .Include(ffv => ffv.FeatureFlag)
+            .Include(ffv => ffv.TargetingRules)
+                .ThenInclude(r => r.Conditions)
             .Where(ffv => ffv.Scope.Alias == scopeAlias &&
                           ffv.FeatureFlag.ProjectId == projectId)
             .ToListAsync();
