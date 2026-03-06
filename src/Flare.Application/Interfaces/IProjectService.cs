@@ -9,6 +9,7 @@ public interface IProjectService
     Task DeleteAsync(Guid projectId, Guid currentUserId, string actorUsername);
     Task<ProjectDetailResponseDto> GetByIdAsync(Guid projectId, Guid currentUserId);
     Task<List<ProjectResponseDto>> GetUserProjectsAsync(Guid userId);
+    Task<ProjectApiKeyResponseDto> GetApiKeyAsync(Guid projectId, Guid currentUserId);
     Task<RegenerateApiKeyResponseDto> RegenerateApiKeyAsync(Guid projectId, Guid currentUserId, string actorUsername);
     Task ArchiveAsync(Guid projectId, Guid currentUserId, string actorUsername);
     Task UnarchiveAsync(Guid projectId, Guid currentUserId, string actorUsername);

@@ -125,7 +125,7 @@ public class ProjectService : IProjectService
 
         _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Created");
 
-        return MapToDetailResponseDto(project, true);
+        return MapToDetailResponseDto(project);
     }
 
     public async Task<ProjectDetailResponseDto> UpdateAsync(Guid projectId, UpdateProjectDto dto, Guid currentUserId, string actorUsername)
@@ -155,7 +155,7 @@ public class ProjectService : IProjectService
         var newValue = new { dto.Name, dto.Alias, dto.Description };
         _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Updated", oldValue, newValue);
 
-        return MapToDetailResponseDto(project, true);
+        return MapToDetailResponseDto(project);
     }
 
     public async Task DeleteAsync(Guid projectId, Guid currentUserId, string actorUsername)
@@ -187,9 +187,23 @@ public class ProjectService : IProjectService
             throw new NotFoundException("Project not found.");
         }
 
-        var canViewApiKey = await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ViewApiKey);
+        return MapToDetailResponseDto(project);
+    }
 
-        return MapToDetailResponseDto(project, canViewApiKey);
+    public async Task<ProjectApiKeyResponseDto> GetApiKeyAsync(Guid projectId, Guid currentUserId)
+    {
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ViewApiKey))
+        {
+            throw new ForbiddenException("You do not have permission to view the API key.");
+        }
+
+        var project = await _projectRepository.GetByIdAsync(projectId);
+        if (project == null)
+        {
+            throw new NotFoundException("Project not found.");
+        }
+
+        return new ProjectApiKeyResponseDto { ApiKey = project.ApiKey ?? string.Empty };
     }
 
     public async Task<List<ProjectResponseDto>> GetUserProjectsAsync(Guid userId)
@@ -338,14 +352,12 @@ public class ProjectService : IProjectService
             Alias = project.Alias,
             Name = project.Name,
             Description = project.Description,
-            CreatedBy = project.CreatedBy,
             IsArchived = project.IsArchived,
-            CreatedAt = project.CreatedAt,
-            UpdatedAt = project.UpdatedAt
+            CreatedAt = project.CreatedAt
         };
     }
 
-    private ProjectDetailResponseDto MapToDetailResponseDto(Project project, bool canViewApiKey)
+    private static ProjectDetailResponseDto MapToDetailResponseDto(Project project)
     {
         return new ProjectDetailResponseDto
         {
@@ -353,11 +365,7 @@ public class ProjectService : IProjectService
             Alias = project.Alias,
             Name = project.Name,
             Description = project.Description,
-            ApiKey = canViewApiKey ? project.ApiKey : null,
-            CreatedBy = project.CreatedBy,
             IsArchived = project.IsArchived,
-            CreatedAt = project.CreatedAt,
-            UpdatedAt = project.UpdatedAt,
         };
     }
 
