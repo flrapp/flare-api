@@ -73,4 +73,20 @@ public class UserController : ControllerBase
         await _userService.SoftDeleteUserAsync(userId, username);
         return NoContent();
     }
+
+    [HttpPost("{userId:guid}/reset-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ResetUserPassword(Guid userId, [FromBody] ResetUserPasswordDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _userService.ResetUserPasswordAsync(userId, dto, username);
+        return NoContent();
+    }
 }

@@ -10,4 +10,5 @@ public interface IUserService
     Task<UserResponseDto> UpdateUserAsync(Guid userId, UpdateUserDto dto, string actorUsername);
     Task SoftDeleteUserAsync(Guid userId, string actorUsername);
     Task<List<AvailableUserDto>> GetAvailableUsersForProjectAsync(Guid projectId);
+    Task ResetUserPasswordAsync(Guid userId, ResetUserPasswordDto dto, string actorUsername);
 }

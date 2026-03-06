@@ -3,6 +3,7 @@ using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
 using Flare.Domain.Entities;
 using Flare.Domain.Enums;
+using Flare.Domain.Exceptions;
 using Flare.Infrastructure.Data.Repositories.Interfaces;
 
 namespace Flare.Application.Services;
@@ -140,6 +141,23 @@ public class UserService : IUserService
         await _userRepository.UpdateAsync(user);
 
         _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "Deactivated");
+    }
+
+    public async Task ResetUserPasswordAsync(Guid userId, ResetUserPasswordDto dto, string actorUsername)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User", userId);
+        }
+
+        user.PasswordHash = _authService.HashPassword(dto.TemporaryPassword);
+        user.MustChangePassword = true;
+
+        await _userRepository.UpdateAsync(user);
+
+        _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "PasswordReset");
     }
 
     public async Task<List<AvailableUserDto>> GetAvailableUsersForProjectAsync(Guid projectId)
