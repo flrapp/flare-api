@@ -100,6 +100,20 @@ public class ProjectsController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("{projectId}/api-key")]
+    [Authorize]
+    [ProducesResponseType(typeof(ProjectApiKeyResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectApiKeyResponseDto>> GetApiKey(Guid projectId)
+    {
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _projectService.GetApiKeyAsync(projectId, userId);
+
+        return Ok(result);
+    }
+
     [HttpPost("{projectId}/regenerate-api-key")]
     [Authorize]
     [ProducesResponseType(typeof(RegenerateApiKeyResponseDto), StatusCodes.Status200OK)]
