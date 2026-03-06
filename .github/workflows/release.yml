@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   docker:
-    uses: flrapp/.github/workflows/docker-build-push.yml@main
+    uses: flrapp/.github/.github/workflows/docker-build-push.yml@main
     with:
       image-name: ghcr.io/flrapp/flare-api
       dockerfile-path: ./src/Flare.Api/Dockerfile
