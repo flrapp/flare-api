@@ -41,9 +41,9 @@ public class UserController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(List<UserResponseDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<UserResponseDto>>> GetAllUsers()
+    public async Task<ActionResult<List<UserResponseDto>>> GetAllUsers([FromQuery] bool? isActive = null)
     {
-        var users = await _userService.GetAllUsersAsync();
+        var users = await _userService.GetAllUsersAsync(isActive);
         return Ok(users);
     }
 
@@ -69,8 +69,35 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteUser(Guid userId)
     {
+        var currentUserId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        await _userService.SoftDeleteUserAsync(userId, username);
+        await _userService.HardDeleteUserAsync(userId, currentUserId, username);
+        return NoContent();
+    }
+
+    [HttpPost("{userId:guid}/activate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ActivateUser(Guid userId)
+    {
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _userService.ActivateUserAsync(userId, username);
+        return NoContent();
+    }
+
+    [HttpPost("{userId:guid}/deactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeactivateUser(Guid userId)
+    {
+        var currentUserId = HttpContext.GetCurrentUserId()!.Value;
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _userService.DeactivateUserAsync(userId, currentUserId, username);
         return NoContent();
     }
 

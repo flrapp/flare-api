@@ -69,4 +69,10 @@ public class UserRepository : IUserRepository
             .OrderBy(u => u.Username)
             .ToListAsync();
     }
+
+    public async Task DeleteAsync(User user)
+    {
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+    }
 }

@@ -13,4 +13,5 @@ public interface IUserRepository
     Task<User?> GetActiveByUsernameAsync(string username);
     Task<List<User>> GetAllAsync();
     Task<List<User>> GetAllActiveUsersAsync();
+    Task DeleteAsync(User user);
 }

@@ -58,14 +58,18 @@ public class UserService : IUserService
             Username = createdUser.Username,
             FullName = createdUser.FullName,
             GlobalRole = createdUser.GlobalRole,
+            IsActive = createdUser.IsActive,
             CreatedAt = createdUser.CreatedAt,
             LastLoginAt = createdUser.LastLoginAt
         };
     }
 
-    public async Task<List<UserResponseDto>> GetAllUsersAsync()
+    public async Task<List<UserResponseDto>> GetAllUsersAsync(bool? isActive = null)
     {
         var users = await _userRepository.GetAllAsync();
+
+        if (isActive.HasValue)
+            users = users.Where(u => u.IsActive == isActive.Value).ToList();
 
         return users.Select(u => new UserResponseDto
         {
@@ -73,6 +77,7 @@ public class UserService : IUserService
             Username = u.Username,
             FullName = u.FullName,
             GlobalRole = u.GlobalRole,
+            IsActive = u.IsActive,
             CreatedAt = u.CreatedAt,
             LastLoginAt = u.LastLoginAt
         }).ToList();
@@ -93,6 +98,7 @@ public class UserService : IUserService
             Username = user.Username,
             FullName = user.FullName,
             GlobalRole = user.GlobalRole,
+            IsActive = user.IsActive,
             CreatedAt = user.CreatedAt,
             LastLoginAt = user.LastLoginAt
         };
@@ -123,6 +129,7 @@ public class UserService : IUserService
             Username = user.Username,
             FullName = user.FullName,
             GlobalRole = user.GlobalRole,
+            IsActive = user.IsActive,
             CreatedAt = user.CreatedAt,
             LastLoginAt = user.LastLoginAt
         };
@@ -158,6 +165,60 @@ public class UserService : IUserService
         await _userRepository.UpdateAsync(user);
 
         _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "PasswordReset");
+    }
+
+    public async Task ActivateUserAsync(Guid userId, string actorUsername)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User", userId);
+        }
+
+        user.IsActive = true;
+        await _userRepository.UpdateAsync(user);
+
+        _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "Activated");
+    }
+
+    public async Task DeactivateUserAsync(Guid userId, Guid currentUserId, string actorUsername)
+    {
+        if (userId == currentUserId)
+        {
+            throw new BadRequestException("You cannot deactivate your own account.");
+        }
+
+        var user = await _userRepository.GetByIdAsync(userId);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User", userId);
+        }
+
+        user.IsActive = false;
+        await _userRepository.UpdateAsync(user);
+
+        _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "Deactivated");
+    }
+
+    public async Task HardDeleteUserAsync(Guid userId, Guid currentUserId, string actorUsername)
+    {
+        if (userId == currentUserId)
+        {
+            throw new BadRequestException("You cannot delete your own account.");
+        }
+
+        var user = await _userRepository.GetByIdAsync(userId);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User", userId);
+        }
+
+        await _userRepository.DeleteAsync(user);
+
+        _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "HardDeleted");
     }
 
     public async Task<List<AvailableUserDto>> GetAvailableUsersForProjectAsync(Guid projectId)
