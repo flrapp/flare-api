@@ -352,14 +352,26 @@ public class FeatureFlagService : IFeatureFlagService
     {
         if (condition.Operator is ComparisonOperator.InSegment or ComparisonOperator.NotInSegment)
         {
-            if (context.TargetingKey == null)
-                return false;
-
             if (!Guid.TryParse(condition.Value, out var segmentId))
                 return false;
 
-            var inSegment = await _segmentRepository.IsTargetingKeyInSegmentAsync(segmentId, context.TargetingKey);
-            return condition.Operator == ComparisonOperator.InSegment ? inSegment : !inSegment;
+            // "targetingKey" is a reserved attribute key — maps to context.TargetingKey.
+            // Any other key is resolved from context.Attributes dictionary.
+            var lookupValue = ResolveAttributeValue(condition.AttributeKey, context);
+            if (lookupValue == null)
+                return false;
+
+            var inSegment = await _segmentRepository.IsTargetingKeyInSegmentAsync(segmentId, lookupValue);
+            switch (condition.Operator)
+            {
+                case ComparisonOperator.InSegment when inSegment:
+                    return true;
+                case ComparisonOperator.InSegment when !inSegment:
+                case ComparisonOperator.NotInSegment when inSegment:
+                    return false;
+                case ComparisonOperator.NotInSegment when !inSegment:
+                    return true;
+            }
         }
 
         var attributeValue = ResolveAttributeValue(condition.AttributeKey, context);
@@ -383,13 +395,13 @@ public class FeatureFlagService : IFeatureFlagService
 
     private static string? ResolveAttributeValue(string attributeKey, EvaluationContextDto context)
     {
+        // "targetingKey" is a reserved attribute key — maps to context.TargetingKey.
+        // Any other key is resolved from context.Attributes dictionary.
         if (attributeKey == "targetingKey")
             return context.TargetingKey;
 
-        if (context.Attributes != null && context.Attributes.TryGetValue(attributeKey, out var element))
-            return element.ValueKind == System.Text.Json.JsonValueKind.String
-                ? element.GetString()
-                : element.ToString();
+        if (context.Attributes != null && context.Attributes.TryGetValue(attributeKey, out var value))
+            return value;
 
         return null;
     }

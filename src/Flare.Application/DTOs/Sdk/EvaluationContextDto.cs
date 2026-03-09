@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Flare.Application.DTOs.Sdk;
@@ -16,13 +15,12 @@ public class EvaluationContextDto
     public string Scope { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional targeting key for user-specific flag evaluation (for future use).
+    /// Optional targeting key for user-specific flag evaluation.
     /// </summary>
     public string? TargetingKey { get; set; }
 
     /// <summary>
     /// Additional custom attributes for evaluation context.
     /// </summary>
-    [JsonExtensionData]
-    public Dictionary<string, JsonElement>? Attributes { get; set; }
+    public Dictionary<string, string>? Attributes { get; set; }
 }
