@@ -9,4 +9,5 @@ public class FeatureFlagValue
     public Scope Scope { get; set; } = null!;
     public bool IsEnabled { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public ICollection<TargetingRule> TargetingRules { get; set; } = new List<TargetingRule>();
 }

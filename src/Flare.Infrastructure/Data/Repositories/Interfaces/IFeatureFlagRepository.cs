@@ -26,6 +26,7 @@ public interface IFeatureFlagRepository
 
     Task<FeatureFlag?> GetByIdWithScopesAndProjectAsync(Guid featureFlagId);
     Task<FeatureFlagValue?> GetValueByFlagIdAndScopeIdAsync(Guid featureFlagId, Guid scopeId);
+    Task<FeatureFlagValue?> GetValueByIdWithNavigationsAsync(Guid flagValueId);
     Task UpdateValueAsync(FeatureFlagValue featureFlagValue);
 
     /// <summary>

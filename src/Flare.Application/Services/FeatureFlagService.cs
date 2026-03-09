@@ -17,6 +17,7 @@ public class FeatureFlagService : IFeatureFlagService
     private readonly IFeatureFlagRepository _featureFlagRepository;
     private readonly IProjectRepository _projectRepository;
     private readonly IScopeRepository _scopeRepository;
+    private readonly ISegmentRepository _segmentRepository;
     private readonly IPermissionService _permissionService;
     private readonly HybridCache _hybridCache;
     private readonly IAuditLogger _auditLogger;
@@ -25,6 +26,7 @@ public class FeatureFlagService : IFeatureFlagService
         IFeatureFlagRepository featureFlagRepository,
         IProjectRepository projectRepository,
         IScopeRepository scopeRepository,
+        ISegmentRepository segmentRepository,
         IPermissionService permissionService,
         HybridCache hybridCache,
         IAuditLogger auditLogger)
@@ -32,6 +34,7 @@ public class FeatureFlagService : IFeatureFlagService
         _featureFlagRepository = featureFlagRepository;
         _projectRepository = projectRepository;
         _scopeRepository = scopeRepository;
+        _segmentRepository = segmentRepository;
         _permissionService = permissionService;
         _hybridCache = hybridCache;
         _auditLogger = auditLogger;
@@ -281,12 +284,13 @@ public class FeatureFlagService : IFeatureFlagService
         if (featureFlagValue == null)
             throw new NotFoundException($"Feature flag '{flagKey}' not found.");
 
+        var (value, reason) = await EvaluateTargetingRulesAsync(featureFlagValue, context);
         return new FlagEvaluationResponseDto
         {
             FlagKey = flagKey,
-            Value = featureFlagValue.IsEnabled,
-            Variant = featureFlagValue.IsEnabled ? "enabled" : "disabled",
-            Reason = "STATIC",
+            Value = value,
+            Variant = value ? "enabled" : "disabled",
+            Reason = reason,
         };
     }
 
@@ -300,15 +304,131 @@ public class FeatureFlagService : IFeatureFlagService
 
         var featureFlagValues = await _featureFlagRepository.GetAllByProjectIdAndScopeAliasAsync(projectId, scopeAlias);
 
-        var flags = featureFlagValues.Select(ffv => new FlagEvaluationResponseDto
+        var flags = new List<FlagEvaluationResponseDto>();
+        foreach (var ffv in featureFlagValues)
         {
-            FlagKey = ffv.FeatureFlag.Key,
-            Value = ffv.IsEnabled,
-            Variant = ffv.IsEnabled ? "enabled" : "disabled",
-            Reason = "STATIC",
-        }).ToList();
+            var (value, reason) = await EvaluateTargetingRulesAsync(ffv, context);
+            flags.Add(new FlagEvaluationResponseDto
+            {
+                FlagKey = ffv.FeatureFlag.Key,
+                Value = value,
+                Variant = value ? "enabled" : "disabled",
+                Reason = reason,
+            });
+        }
 
         return new BulkEvaluationResponseDto { Flags = flags };
+    }
+
+    private async Task<(bool value, string reason)> EvaluateTargetingRulesAsync(
+        FeatureFlagValue flagValue, EvaluationContextDto context)
+    {
+        var rules = flagValue.TargetingRules.OrderBy(r => r.Priority).ToList();
+
+        if (rules.Count == 0)
+            return (flagValue.IsEnabled, "STATIC");
+
+        foreach (var rule in rules)
+        {
+            if (await AllConditionsMatchAsync(rule.Conditions, context))
+                return (rule.ServeValue, "TARGETING_MATCH");
+        }
+
+        return (flagValue.IsEnabled, "DEFAULT");
+    }
+
+    private async Task<bool> AllConditionsMatchAsync(
+        IEnumerable<TargetingCondition> conditions, EvaluationContextDto context)
+    {
+        foreach (var condition in conditions)
+        {
+            if (!await EvaluateConditionAsync(condition, context))
+                return false;
+        }
+        return true;
+    }
+
+    private async Task<bool> EvaluateConditionAsync(TargetingCondition condition, EvaluationContextDto context)
+    {
+        if (condition.Operator is ComparisonOperator.InSegment or ComparisonOperator.NotInSegment)
+        {
+            if (!Guid.TryParse(condition.Value, out var segmentId))
+                return false;
+
+            // "targetingKey" is a reserved attribute key — maps to context.TargetingKey.
+            // Any other key is resolved from context.Attributes dictionary.
+            var lookupValue = ResolveAttributeValue(condition.AttributeKey, context);
+            if (lookupValue == null)
+                return false;
+
+            var inSegment = await _segmentRepository.IsTargetingKeyInSegmentAsync(segmentId, lookupValue);
+            switch (condition.Operator)
+            {
+                case ComparisonOperator.InSegment when inSegment:
+                    return true;
+                case ComparisonOperator.InSegment when !inSegment:
+                case ComparisonOperator.NotInSegment when inSegment:
+                    return false;
+                case ComparisonOperator.NotInSegment when !inSegment:
+                    return true;
+            }
+        }
+
+        var attributeValue = ResolveAttributeValue(condition.AttributeKey, context);
+        if (attributeValue == null)
+            return false;
+
+        return condition.Operator switch
+        {
+            ComparisonOperator.Equals => string.Equals(attributeValue, condition.Value, StringComparison.Ordinal),
+            ComparisonOperator.NotEquals => !string.Equals(attributeValue, condition.Value, StringComparison.Ordinal),
+            ComparisonOperator.Contains => attributeValue.Contains(condition.Value, StringComparison.Ordinal),
+            ComparisonOperator.StartsWith => attributeValue.StartsWith(condition.Value, StringComparison.Ordinal),
+            ComparisonOperator.EndsWith => attributeValue.EndsWith(condition.Value, StringComparison.Ordinal),
+            ComparisonOperator.In => EvaluateInOperator(attributeValue, condition.Value),
+            ComparisonOperator.NotIn => !EvaluateInOperator(attributeValue, condition.Value),
+            ComparisonOperator.GreaterThan => EvaluateNumericComparison(attributeValue, condition.Value) > 0,
+            ComparisonOperator.LessThan => EvaluateNumericComparison(attributeValue, condition.Value) < 0,
+            _ => false
+        };
+    }
+
+    private static string? ResolveAttributeValue(string attributeKey, EvaluationContextDto context)
+    {
+        // "targetingKey" is a reserved attribute key — maps to context.TargetingKey.
+        // Any other key is resolved from context.Attributes dictionary.
+        if (attributeKey == "targetingKey")
+            return context.TargetingKey;
+
+        if (context.Attributes != null && context.Attributes.TryGetValue(attributeKey, out var value))
+            return value;
+
+        return null;
+    }
+
+    private static bool EvaluateInOperator(string attributeValue, string conditionValue)
+    {
+        try
+        {
+            var array = System.Text.Json.JsonSerializer.Deserialize<List<string>>(conditionValue);
+            return array != null && array.Contains(attributeValue, StringComparer.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static int EvaluateNumericComparison(string attributeValue, string conditionValue)
+    {
+        if (decimal.TryParse(attributeValue, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var attr) &&
+            decimal.TryParse(conditionValue, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var cond))
+        {
+            return attr.CompareTo(cond);
+        }
+        return 0;
     }
 
     #region Helper Methods
@@ -337,7 +457,23 @@ public class FeatureFlagService : IFeatureFlagService
                 ScopeName = v.Scope.Name,
                 ScopeAlias = v.Scope.Alias,
                 IsEnabled = v.IsEnabled,
-                UpdatedAt = v.UpdatedAt
+                UpdatedAt = v.UpdatedAt,
+                TargetingRules = v.TargetingRules
+                    .OrderBy(r => r.Priority)
+                    .Select(r => new TargetingRuleDto
+                    {
+                        Id = r.Id,
+                        FeatureFlagValueId = r.FeatureFlagValueId,
+                        Priority = r.Priority,
+                        ServeValue = r.ServeValue,
+                        Conditions = r.Conditions.Select(c => new TargetingConditionDto
+                        {
+                            Id = c.Id,
+                            AttributeKey = c.AttributeKey,
+                            Operator = c.Operator,
+                            Value = c.Value
+                        }).ToList()
+                    }).ToList()
             }).ToList()
         };
     }

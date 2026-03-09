@@ -8,4 +8,5 @@ public class FeatureFlagValueDto
     public string ScopeAlias { get; set; } = string.Empty;
     public bool IsEnabled { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public List<TargetingRuleDto> TargetingRules { get; set; } = new();
 }

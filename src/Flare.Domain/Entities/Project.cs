@@ -16,4 +16,5 @@ public class Project
     public ICollection<ProjectUser> Members { get; set; } = new List<ProjectUser>();
     public ICollection<Scope> Scopes { get; set; } = new List<Scope>();
     public ICollection<FeatureFlag> FeatureFlags { get; set; } = new List<FeatureFlag>();
+    public ICollection<Segment> Segments { get; set; } = new List<Segment>();
 }

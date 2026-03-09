@@ -29,9 +29,4 @@ public class FlagEvaluationResponseDto
     /// Common values: "STATIC", "TARGETING_MATCH", "DEFAULT", "ERROR".
     /// </summary>
     public string Reason { get; set; } = "STATIC";
-
-    /// <summary>
-    /// Additional metadata about the flag evaluation.
-    /// </summary>
-    public FlagMetadataDto? FlagMetadata { get; set; }
 }
