@@ -36,6 +36,7 @@ public class Startup
         services.AddControllers();
 
         services.ConfigureTracingAndMetrics(Configuration);
+        services.ConfigureRateLimiting(Configuration);
 
         services.AddApiVersioning(options =>
         {
@@ -64,6 +65,8 @@ public class Startup
         app.UseRouting();
         app.UseCors(CorsPolicyConstants.UiCorsPolicy);
         app.UseHttpsRedirection(); 
+
+        app.UseRateLimiter();
 
         app.UseAuthentication();
         app.UseAuthorization();
