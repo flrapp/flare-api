@@ -57,10 +57,11 @@ public class DatabaseInitializer
             Username = adminUsername,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword, workFactor: 12),
             FullName = adminFullName,
-            GlobalRole = GlobalRole.Admin,
+            GlobalRole = GlobalRole.SuperAdmin,
             IsActive = true,
             MustChangePassword = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            InitialUser = true
         };
 
         _dbContext.Users.Add(adminUser);

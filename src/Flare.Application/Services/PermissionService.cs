@@ -35,7 +35,7 @@ public class PermissionService : IPermissionService
     public async Task<bool> IsAdminAsync(Guid userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
-        return user?.GlobalRole == GlobalRole.Admin;
+        return user?.GlobalRole == GlobalRole.Admin || user?.GlobalRole == GlobalRole.SuperAdmin;
     }
 
     public async Task<bool> HasProjectPermissionAsync(Guid userId, Guid projectId, ProjectPermission permission)

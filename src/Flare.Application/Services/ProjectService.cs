@@ -214,7 +214,7 @@ public class ProjectService : IProjectService
             throw new NotFoundException("User not found.");
         }
 
-        var projects = user.GlobalRole == GlobalRole.Admin
+        var projects = user.GlobalRole is GlobalRole.Admin or GlobalRole.SuperAdmin
             ? await _projectRepository.GetAllAsync()
             : await _projectRepository.GetByUserIdAsync(userId);
 

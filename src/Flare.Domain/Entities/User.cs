@@ -13,6 +13,7 @@ public class User
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public bool MustChangePassword { get; set; } = false;
+    public bool InitialUser { get; set; } = false;
 
     public ICollection<ProjectUser> ProjectMemberships { get; set; } = new List<ProjectUser>();
 }

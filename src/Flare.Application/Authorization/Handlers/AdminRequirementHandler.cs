@@ -13,7 +13,7 @@ public class AdminRequirementHandler : AuthorizationHandler<AdminRequirement>
     {
         var roleClaim = context.User.FindFirst(ClaimTypes.Role);
 
-        if (roleClaim?.Value == GlobalRole.Admin.ToString())
+        if (roleClaim?.Value == GlobalRole.Admin.ToString() || roleClaim?.Value == GlobalRole.SuperAdmin.ToString())
         {
             context.Succeed(requirement);
         }

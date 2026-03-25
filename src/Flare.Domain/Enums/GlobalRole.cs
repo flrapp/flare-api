@@ -3,5 +3,6 @@
 public enum GlobalRole
 {
     User,
-    Admin
+    Admin,
+    SuperAdmin
 }
