@@ -42,7 +42,7 @@ public class ScopeService : IScopeService
             throw new ForbiddenException("You do not have permission to create scopes in this project.");
         }
 
-        if (!await _scopeRepository.ExistsByProjectAndAliasAsync(projectId, dto.Alias))
+        if (await _scopeRepository.ExistsByProjectAndAliasAsync(projectId, dto.Alias))
         {
             throw new BadRequestException("Scope with this alias already exists.");
         }
