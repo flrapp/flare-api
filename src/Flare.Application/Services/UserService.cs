@@ -60,7 +60,10 @@ public class UserService : IUserService
             GlobalRole = createdUser.GlobalRole,
             IsActive = createdUser.IsActive,
             CreatedAt = createdUser.CreatedAt,
-            LastLoginAt = createdUser.LastLoginAt
+            LastLoginAt = createdUser.LastLoginAt,
+            IsBruteForceLocked = createdUser.IsBruteForceLocked,
+            FailedLoginAttempts = createdUser.FailedLoginAttempts,
+            LockedUntil = createdUser.LockedUntil
         };
     }
 
@@ -79,7 +82,10 @@ public class UserService : IUserService
             GlobalRole = u.GlobalRole,
             IsActive = u.IsActive,
             CreatedAt = u.CreatedAt,
-            LastLoginAt = u.LastLoginAt
+            LastLoginAt = u.LastLoginAt,
+            IsBruteForceLocked = u.IsBruteForceLocked,
+            FailedLoginAttempts = u.FailedLoginAttempts,
+            LockedUntil = u.LockedUntil
         }).ToList();
     }
 
@@ -100,7 +106,10 @@ public class UserService : IUserService
             GlobalRole = user.GlobalRole,
             IsActive = user.IsActive,
             CreatedAt = user.CreatedAt,
-            LastLoginAt = user.LastLoginAt
+            LastLoginAt = user.LastLoginAt,
+            IsBruteForceLocked = user.IsBruteForceLocked,
+            FailedLoginAttempts = user.FailedLoginAttempts,
+            LockedUntil = user.LockedUntil
         };
     }
 
@@ -131,7 +140,10 @@ public class UserService : IUserService
             GlobalRole = user.GlobalRole,
             IsActive = user.IsActive,
             CreatedAt = user.CreatedAt,
-            LastLoginAt = user.LastLoginAt
+            LastLoginAt = user.LastLoginAt,
+            IsBruteForceLocked = user.IsBruteForceLocked,
+            FailedLoginAttempts = user.FailedLoginAttempts,
+            LockedUntil = user.LockedUntil
         };
     }
 
@@ -219,6 +231,20 @@ public class UserService : IUserService
         await _userRepository.DeleteAsync(user);
 
         _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "HardDeleted");
+    }
+
+    public async Task UnlockUserAsync(Guid userId, string actorUsername)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User", userId);
+        }
+
+        await _authService.UnlockAccountAsync(userId);
+
+        _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "BruteForceUnlocked");
     }
 
     public async Task<List<AvailableUserDto>> GetAvailableUsersForProjectAsync(Guid projectId)

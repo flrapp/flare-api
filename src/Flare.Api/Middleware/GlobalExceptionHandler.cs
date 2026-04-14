@@ -35,6 +35,13 @@ public class GlobalExceptionHandler : IExceptionHandler
             problemDetails.Extensions["errors"] = validationException.Errors;
         }
 
+        if (exception is AccountLockedException lockedException)
+        {
+            problemDetails.Extensions["isPermanent"] = lockedException.IsPermanent;
+            if (lockedException.RemainingMinutes.HasValue)
+                problemDetails.Extensions["remainingMinutes"] = lockedException.RemainingMinutes;
+        }
+
         httpContext.Response.StatusCode = statusCode;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
@@ -49,6 +56,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             NotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
             ValidationException => (StatusCodes.Status400BadRequest, "Validation Error"),
             UnauthorizedException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
+            AccountLockedException => (StatusCodes.Status401Unauthorized, "Account Locked"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Forbidden"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")

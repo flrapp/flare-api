@@ -101,6 +101,18 @@ public class UserController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("{userId:guid}/unlock")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UnlockUser(Guid userId)
+    {
+        var username = HttpContext.GetCurrentUsername() ?? "unknown";
+        await _userService.UnlockUserAsync(userId, username);
+        return NoContent();
+    }
+
     [HttpPost("{userId:guid}/reset-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

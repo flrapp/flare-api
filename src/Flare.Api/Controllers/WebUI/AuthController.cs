@@ -34,30 +34,22 @@ public class AuthController : ControllerBase
         {
             return BadRequest(ModelState);
         }
+        
+        var result = await _authService.LoginAsync(loginDto);
 
-        try
+        if (result == null)
         {
-            var result = await _authService.LoginAsync(loginDto);
-
-            if (result == null)
-            {
-                _logger.LogWarning("Login failed for username: {Username}", loginDto.Username);
-                return Unauthorized(new { message = "Invalid username or password" });
-            }
-
-            await HttpContext.SignInUserAsync(result);
-            await _authService.UpdateLastLoginAsync(result.UserId);
-
-            _logger.LogInformation("User {Username} logged in successfully", result.Username);
-            _auditLogger.LogUserAudit(result.Username, result.Username, "User", null, "LoggedIn");
-
-            return Ok(result);
+            _logger.LogWarning("Login failed for username: {Username}", loginDto.Username);
+            return Unauthorized(new { message = "Invalid username or password" });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during login");
-            return BadRequest(new { message = "Login failed. Please try again." });
-        }
+
+        await HttpContext.SignInUserAsync(result);
+        await _authService.UpdateLastLoginAsync(result.UserId);
+
+        _logger.LogInformation("User {Username} logged in successfully", result.Username);
+        _auditLogger.LogUserAudit(result.Username, result.Username, "User", null, "LoggedIn");
+
+        return Ok(result);
     }
 
     [HttpPost("logout")]

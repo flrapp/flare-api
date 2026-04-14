@@ -11,6 +11,7 @@ public interface IAuthService
     Task<User?> GetUserByUsernameAsync(string username);
     Task UpdateLastLoginAsync(Guid userId);
     Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto);
+    Task UnlockAccountAsync(Guid userId);
     string HashPassword(string password);
     bool VerifyPassword(string password, string passwordHash);
 }

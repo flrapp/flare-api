@@ -13,5 +13,7 @@ public class UserConfiguration: IEntityTypeConfiguration<User>
         builder.Property(e => e.Username).HasMaxLength(50).IsRequired();
         builder.Property(e => e.FullName).HasMaxLength(255).IsRequired();
         builder.Property(e => e.GlobalRole).HasConversion<string>();
+        builder.Property(e => e.FailedLoginAttempts).HasDefaultValue(0);
+        builder.Property(e => e.IsBruteForceLocked).HasDefaultValue(false);
     }
 }

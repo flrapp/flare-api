@@ -1,7 +1,9 @@
 using Flare.Application.DTOs;
 using Flare.Application.Interfaces;
+using Flare.Domain.Constants;
 using Flare.Domain.Entities;
 using Flare.Domain.Enums;
+using Flare.Domain.Exceptions;
 using Flare.Infrastructure.Data.Repositories.Interfaces;
 
 namespace Flare.Application.Services;
@@ -17,26 +19,71 @@ public class AuthService : IAuthService
 
     public async Task<AuthResultDto?> LoginAsync(LoginDto loginDto)
     {
-        var user = await _userRepository.GetActiveByUsernameAsync(loginDto.Username);
+        var user = await _userRepository.GetByUsernameAsync(loginDto.Username);
 
         if (user == null)
         {
             return null;
         }
 
-        if (!VerifyPassword(loginDto.Password, user.PasswordHash))
+        if (user.IsBruteForceLocked)
+        {
+            throw new AccountLockedException(isPermanent: true);
+        }
+
+        if (user.LockedUntil != null && user.LockedUntil > DateTime.UtcNow)
+        {
+            var remainingMinutes = (int)Math.Ceiling((user.LockedUntil.Value - DateTime.UtcNow).TotalMinutes);
+            throw new AccountLockedException(isPermanent: false, remainingMinutes: remainingMinutes);
+        }
+
+        if (!user.IsActive)
         {
             return null;
         }
 
-        return new AuthResultDto
+        if (VerifyPassword(loginDto.Password, user.PasswordHash))
         {
-            UserId = user.Id,
-            Username = user.Username,
-            FullName = user.FullName,
-            GlobalRole = user.GlobalRole,
-            MustChangePassword = user.MustChangePassword
-        };
+            user.FailedLoginAttempts = 0;
+            user.LastFailedLoginAt = null;
+            user.LockedUntil = null;
+            await _userRepository.UpdateAsync(user);
+
+            return new AuthResultDto
+            {
+                UserId = user.Id,
+                Username = user.Username,
+                FullName = user.FullName,
+                GlobalRole = user.GlobalRole,
+                MustChangePassword = user.MustChangePassword
+            };
+        }
+
+        if (user.LastFailedLoginAt == null ||
+            DateTime.UtcNow - user.LastFailedLoginAt.Value > AuthConstants.AttemptResetWindow)
+        {
+            user.FailedLoginAttempts = 0;
+        }
+
+        user.FailedLoginAttempts++;
+        user.LastFailedLoginAt = DateTime.UtcNow;
+
+        if (user.FailedLoginAttempts >= AuthConstants.PermanentLockThreshold)
+        {
+            user.IsBruteForceLocked = true;
+            await _userRepository.UpdateAsync(user);
+            throw new AccountLockedException(isPermanent: true);
+        }
+
+        if (user.FailedLoginAttempts >= AuthConstants.MaxFailedAttempts)
+        {
+            user.LockedUntil = DateTime.UtcNow.Add(AuthConstants.TemporaryLockDuration);
+            await _userRepository.UpdateAsync(user);
+            throw new AccountLockedException(isPermanent: false, remainingMinutes: (int)AuthConstants.TemporaryLockDuration.TotalMinutes);
+        }
+
+        await _userRepository.UpdateAsync(user);
+        return null;
     }
 
     public async Task<AuthResultDto> RegisterAsync(RegisterDto registerDto)
@@ -107,6 +154,23 @@ public class AuthService : IAuthService
 
         user.PasswordHash = HashPassword(dto.NewPassword);
         user.MustChangePassword = false;
+
+        await _userRepository.UpdateAsync(user);
+    }
+
+    public async Task UnlockAccountAsync(Guid userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User", userId);
+        }
+
+        user.IsBruteForceLocked = false;
+        user.FailedLoginAttempts = 0;
+        user.LastFailedLoginAt = null;
+        user.LockedUntil = null;
 
         await _userRepository.UpdateAsync(user);
     }

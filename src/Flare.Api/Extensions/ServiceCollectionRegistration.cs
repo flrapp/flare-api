@@ -103,7 +103,7 @@ public static class ServiceCollectionRegistration
             {
                 if (environment.IsDevelopment())
                 {
-                    builder.WithOrigins("http://localhost:3000")
+                    builder.WithOrigins("http://localhost:3001")
                         .AllowAnyMethod()
                         .AllowAnyHeader()
                         .AllowCredentials(); 
