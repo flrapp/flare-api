@@ -15,5 +15,10 @@ public class User
     public bool MustChangePassword { get; set; } = false;
     public bool InitialUser { get; set; } = false;
 
+    public int FailedLoginAttempts { get; set; } = 0;
+    public DateTime? LastFailedLoginAt { get; set; }
+    public DateTime? LockedUntil { get; set; }
+    public bool IsBruteForceLocked { get; set; } = false;
+
     public ICollection<ProjectUser> ProjectMemberships { get; set; } = new List<ProjectUser>();
 }

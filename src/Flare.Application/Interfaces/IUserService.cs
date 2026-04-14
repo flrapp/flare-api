@@ -14,4 +14,5 @@ public interface IUserService
     Task ActivateUserAsync(Guid userId, string actorUsername);
     Task DeactivateUserAsync(Guid userId, Guid currentUserId, string actorUsername);
     Task HardDeleteUserAsync(Guid userId, Guid currentUserId, string actorUsername);
+    Task UnlockUserAsync(Guid userId, string actorUsername);
 }
