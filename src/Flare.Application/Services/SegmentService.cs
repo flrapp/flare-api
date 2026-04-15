@@ -60,7 +60,7 @@ public class SegmentService : ISegmentService
         return MapToDetailResponseDto(segment);
     }
 
-    public async Task<SegmentResponseDto> CreateAsync(Guid projectId, CreateSegmentDto dto, Guid currentUserId, string actorUsername)
+    public async Task CreateAsync(Guid projectId, CreateSegmentDto dto, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageSegments))
             throw new ForbiddenException("You do not have permission to manage segments in this project.");
@@ -85,11 +85,9 @@ public class SegmentService : ISegmentService
         await _segmentRepository.AddAsync(segment);
 
         _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Segment", null, "Created");
-
-        return MapToResponseDto(segment, 0);
     }
 
-    public async Task<SegmentResponseDto> UpdateAsync(Guid segmentId, UpdateSegmentDto dto, Guid currentUserId, string actorUsername)
+    public async Task UpdateAsync(Guid segmentId, UpdateSegmentDto dto, Guid currentUserId, string actorUsername)
     {
         var segment = await _segmentRepository.GetByIdWithMembersAsync(segmentId);
         if (segment == null)
@@ -108,8 +106,6 @@ public class SegmentService : ISegmentService
         await _segmentRepository.UpdateAsync(segment);
 
         _auditLogger.LogProjectAudit(segment.Project.Alias, actorUsername, "Segment", null, "Updated");
-
-        return MapToResponseDto(segment, segment.Members.Count);
     }
 
     public async Task DeleteAsync(Guid segmentId, Guid currentUserId, string actorUsername)
@@ -139,7 +135,7 @@ public class SegmentService : ISegmentService
         return members.Select(MapMemberToDto).ToList();
     }
 
-    public async Task<List<SegmentMemberResponseDto>> AddMembersAsync(Guid segmentId, AddSegmentMembersDto dto, Guid currentUserId, string actorUsername)
+    public async Task AddMembersAsync(Guid segmentId, AddSegmentMembersDto dto, Guid currentUserId, string actorUsername)
     {
         var segment = await _segmentRepository.GetByIdWithMembersAsync(segmentId);
         if (segment == null)
@@ -170,7 +166,6 @@ public class SegmentService : ISegmentService
         _auditLogger.LogProjectAudit(segment.Project.Alias, actorUsername, "SegmentMember", segment.Name, "Added");
 
         var allMembers = await _segmentRepository.GetMembersBySegmentIdAsync(segmentId);
-        return allMembers.Select(MapMemberToDto).ToList();
     }
 
     public async Task DeleteMemberAsync(Guid segmentId, string targetingKey, Guid currentUserId, string actorUsername)

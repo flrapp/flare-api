@@ -26,7 +26,7 @@ public class FeatureFlagsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<FeatureFlagResponseDto>> CreateFeatureFlag(Guid projectId, [FromBody] CreateFeatureFlagDto dto)
+    public async Task<IActionResult> CreateFeatureFlag(Guid projectId, [FromBody] CreateFeatureFlagDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -35,9 +35,9 @@ public class FeatureFlagsController : ControllerBase
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _featureFlagService.CreateAsync(projectId, dto, userId, username);
+        await _featureFlagService.CreateAsync(projectId, dto, userId, username);
 
-        return CreatedAtAction(nameof(GetFeatureFlags), new { projectId = result.ProjectId }, result);
+        return Created();
     }
 
     [HttpGet("projects/{projectId}/feature-flags")]
@@ -61,7 +61,7 @@ public class FeatureFlagsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<FeatureFlagResponseDto>> UpdateFeatureFlag(Guid featureFlagId, [FromBody] UpdateFeatureFlagDto dto)
+    public async Task<IActionResult> UpdateFeatureFlag(Guid featureFlagId, [FromBody] UpdateFeatureFlagDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -70,9 +70,9 @@ public class FeatureFlagsController : ControllerBase
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _featureFlagService.UpdateAsync(featureFlagId, dto, userId, username);
+        await _featureFlagService.UpdateAsync(featureFlagId, dto, userId, username);
 
-        return Ok(result);
+        return Ok();
     }
 
     [HttpDelete("feature-flags/{featureFlagId}")]
@@ -97,7 +97,7 @@ public class FeatureFlagsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<FeatureFlagValueDto>> UpdateFeatureFlagValue(Guid featureFlagId, [FromBody] UpdateFeatureFlagValueDto dto)
+    public async Task<IActionResult> UpdateFeatureFlagValue(Guid featureFlagId, [FromBody] UpdateFeatureFlagValueDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -106,8 +106,8 @@ public class FeatureFlagsController : ControllerBase
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _featureFlagService.UpdateValueAsync(featureFlagId, dto, userId, username);
+        await _featureFlagService.UpdateValueAsync(featureFlagId, dto, userId, username);
 
-        return Ok(result);
+        return Ok();
     }
 }

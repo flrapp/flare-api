@@ -14,13 +14,13 @@ public class FlagEvaluationResponseDto
     public string FlagKey { get; set; } = string.Empty;
 
     /// <summary>
-    /// The resolved boolean value of the feature flag.
+    /// The resolved value of the feature flag. Shape depends on the flag type:
+    /// boolean, string, number, or a JSON object/array.
     /// </summary>
-    [Required]
-    public bool Value { get; set; }
+    public object? Value { get; set; }
 
     /// <summary>
-    /// The variant name ("enabled" or "disabled").
+    /// The variant name (type-dependent).
     /// </summary>
     public string? Variant { get; set; }
 

@@ -40,7 +40,7 @@ public class FeatureFlagService : IFeatureFlagService
         _auditLogger = auditLogger;
     }
 
-    public async Task<FeatureFlagResponseDto> CreateAsync(Guid projectId, CreateFeatureFlagDto dto, Guid currentUserId, string actorUsername)
+    public async Task CreateAsync(Guid projectId, CreateFeatureFlagDto dto, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageFeatureFlags))
         {
@@ -63,6 +63,7 @@ public class FeatureFlagService : IFeatureFlagService
             Key = dto.Key,
             Name = dto.Name,
             Description = dto.Description,
+            Type = dto.Type,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -72,23 +73,12 @@ public class FeatureFlagService : IFeatureFlagService
             var scopes = await _scopeRepository.GetByProjectIdAsync(projectId);
             foreach (var scope in scopes)
             {
-                var featureFlagValue = new FeatureFlagValue
-                {
-                    Id = Guid.NewGuid(),
-                    FeatureFlagId = featureFlag.Id,
-                    ScopeId = scope.Id,
-                    IsEnabled = false,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                featureFlag.Values.Add(featureFlagValue);
+                featureFlag.Values.Add(featureFlag.CreateValueForScope(scope.Id));
             }
 
             await _featureFlagRepository.AddAsync(featureFlag);
 
             _auditLogger.LogProjectAudit(project.Alias, actorUsername, "FeatureFlag", null, "Created");
-
-            return await MapToResponseDtoAsync(featureFlag);
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
         {
@@ -96,7 +86,7 @@ public class FeatureFlagService : IFeatureFlagService
         }
     }
 
-    public async Task<FeatureFlagResponseDto> UpdateAsync(Guid featureFlagId, UpdateFeatureFlagDto dto, Guid currentUserId, string actorUsername)
+    public async Task UpdateAsync(Guid featureFlagId, UpdateFeatureFlagDto dto, Guid currentUserId, string actorUsername)
     {
         var featureFlag = await _featureFlagRepository.GetByIdWithScopesAndProjectAsync(featureFlagId);
         if (featureFlag == null)
@@ -125,8 +115,6 @@ public class FeatureFlagService : IFeatureFlagService
             await _hybridCache.RemoveByTagAsync(projectFeatureFlagTag);
 
             _auditLogger.LogProjectAudit(featureFlag.Project.Alias, actorUsername, "FeatureFlag", null, "Updated");
-
-            return await MapToResponseDtoAsync(featureFlag);
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
         {
@@ -176,7 +164,7 @@ public class FeatureFlagService : IFeatureFlagService
         return responseDtos;
     }
 
-    public async Task<FeatureFlagValueDto> UpdateValueAsync(Guid featureFlagId, UpdateFeatureFlagValueDto dto, Guid currentUserId, string actorUsername)
+    public async Task UpdateValueAsync(Guid featureFlagId, UpdateFeatureFlagValueDto dto, Guid currentUserId, string actorUsername)
     {
         var featureFlag = await _featureFlagRepository.GetByIdWithScopesAndProjectAsync(featureFlagId);
         if (featureFlag == null)
@@ -187,6 +175,11 @@ public class FeatureFlagService : IFeatureFlagService
         if (!await _permissionService.HasScopePermissionAsync(currentUserId, dto.ScopeId, ScopePermission.UpdateFeatureFlags))
         {
             throw new ForbiddenException("You do not have permission to update feature flag values for this scope.");
+        }
+
+        if (featureFlag.Type != dto.Type)
+        {
+            throw new InvalidOperationException("Mismatched feature flag type.");
         }
 
         var scope = featureFlag.Project.Scopes.FirstOrDefault(s => s.Id == dto.ScopeId);
@@ -202,27 +195,16 @@ public class FeatureFlagService : IFeatureFlagService
 
         var featureFlagValue = await _featureFlagRepository.GetValueByFlagIdAndScopeIdAsync(featureFlag.Id, dto.ScopeId);
 
-        var previousIsEnabled = featureFlagValue?.IsEnabled ?? false;
-
         if (featureFlagValue == null)
         {
-            featureFlagValue = new FeatureFlagValue
-            {
-                Id = Guid.NewGuid(),
-                FeatureFlagId = featureFlagId,
-                ScopeId = dto.ScopeId,
-                IsEnabled = dto.IsEnabled,
-                UpdatedAt = DateTime.UtcNow
-            };
-
+            featureFlagValue = featureFlag.CreateValueForScope(dto.ScopeId);
             featureFlag.Values.Add(featureFlagValue);
         }
-        else
-        {
-            featureFlagValue.IsEnabled = dto.IsEnabled;
-            featureFlagValue.UpdatedAt = DateTime.UtcNow;
-        }
+        var previousValue = featureFlagValue.ResolveValue();
 
+        dto.ApplyDefault(featureFlagValue);
+
+        var newValue = featureFlagValue.ResolveValue();
         featureFlag.UpdatedAt = DateTime.UtcNow;
         await _featureFlagRepository.UpdateValueAsync(featureFlagValue);
         var cacheKey = CacheKeys.FeatureFlagCacheKey(featureFlag.Project.Alias, featureFlagValue.Scope.Alias, featureFlag.Key);
@@ -230,18 +212,8 @@ public class FeatureFlagService : IFeatureFlagService
 
         _auditLogger.LogProjectAudit(
             featureFlag.Project.Alias, actorUsername, "FeatureFlag", scope.Alias, "ValueUpdated",
-            previousIsEnabled,
-            dto.IsEnabled);
-
-        return new FeatureFlagValueDto
-        {
-            Id = featureFlagValue.Id,
-            ScopeId = scope.Id,
-            ScopeName = scope.Name,
-            ScopeAlias = scope.Alias,
-            IsEnabled = featureFlagValue.IsEnabled,
-            UpdatedAt = featureFlagValue.UpdatedAt
-        };
+            previousValue!,
+            newValue!);
     }
 
     public async Task<GetFeatureFlagValueDto> GetFeatureFlagValueAsync(string projectAlias, string scopeAlias,
@@ -289,7 +261,7 @@ public class FeatureFlagService : IFeatureFlagService
         {
             FlagKey = flagKey,
             Value = value,
-            Variant = value ? "enabled" : "disabled",
+            Variant = FlagValueReader.Variant(value),
             Reason = reason,
         };
     }
@@ -312,7 +284,7 @@ public class FeatureFlagService : IFeatureFlagService
             {
                 FlagKey = ffv.FeatureFlag.Key,
                 Value = value,
-                Variant = value ? "enabled" : "disabled",
+                Variant = FlagValueReader.Variant(value),
                 Reason = reason,
             });
         }
@@ -320,21 +292,22 @@ public class FeatureFlagService : IFeatureFlagService
         return new BulkEvaluationResponseDto { Flags = flags };
     }
 
-    private async Task<(bool value, string reason)> EvaluateTargetingRulesAsync(
+    private async Task<(object? value, string reason)> EvaluateTargetingRulesAsync(
         FeatureFlagValue flagValue, EvaluationContextDto context)
     {
+        var type = flagValue.FeatureFlag.Type;
         var rules = flagValue.TargetingRules.OrderBy(r => r.Priority).ToList();
 
         if (rules.Count == 0)
-            return (flagValue.IsEnabled, "STATIC");
+            return (FlagValueReader.ReadDefault(flagValue, type), "STATIC");
 
         foreach (var rule in rules)
         {
             if (await AllConditionsMatchAsync(rule.Conditions, context))
-                return (rule.ServeValue, "TARGETING_MATCH");
+                return (FlagValueReader.ReadServe(rule, type), "TARGETING_MATCH");
         }
 
-        return (flagValue.IsEnabled, "DEFAULT");
+        return (FlagValueReader.ReadDefault(flagValue, type), "DEFAULT");
     }
 
     private async Task<bool> AllConditionsMatchAsync(
@@ -435,12 +408,13 @@ public class FeatureFlagService : IFeatureFlagService
 
     private async Task<FeatureFlagResponseDto> MapToResponseDtoAsync(FeatureFlag featureFlag)
     {
-        if (featureFlag.Values == null || !featureFlag.Values.Any() || featureFlag.Values.First().Scope == null)
+        if (!featureFlag.Values.Any())
         {
             featureFlag = await _featureFlagRepository.GetByIdWithValuesAsync(featureFlag.Id)
                 ?? throw new NotFoundException("Feature flag not found.");
         }
 
+        var type = featureFlag.Type;
         return new FeatureFlagResponseDto
         {
             Id = featureFlag.Id,
@@ -448,6 +422,7 @@ public class FeatureFlagService : IFeatureFlagService
             Key = featureFlag.Key,
             Name = featureFlag.Name,
             Description = featureFlag.Description,
+            Type = type,
             CreatedAt = featureFlag.CreatedAt,
             UpdatedAt = featureFlag.UpdatedAt,
             Values = featureFlag.Values.Select(v => new FeatureFlagValueDto
@@ -456,24 +431,13 @@ public class FeatureFlagService : IFeatureFlagService
                 ScopeId = v.ScopeId,
                 ScopeName = v.Scope.Name,
                 ScopeAlias = v.Scope.Alias,
-                IsEnabled = v.IsEnabled,
-                UpdatedAt = v.UpdatedAt,
-                TargetingRules = v.TargetingRules
-                    .OrderBy(r => r.Priority)
-                    .Select(r => new TargetingRuleDto
-                    {
-                        Id = r.Id,
-                        FeatureFlagValueId = r.FeatureFlagValueId,
-                        Priority = r.Priority,
-                        ServeValue = r.ServeValue,
-                        Conditions = r.Conditions.Select(c => new TargetingConditionDto
-                        {
-                            Id = c.Id,
-                            AttributeKey = c.AttributeKey,
-                            Operator = c.Operator,
-                            Value = c.Value
-                        }).ToList()
-                    }).ToList()
+                BooleanValue = type == FeatureFlagType.Boolean ? v.IsEnabled : null,
+                StringValue = v.DefaultStringValue,
+                NumberValue = v.DefaultNumberValue,
+                JsonValue = v.DefaultJsonValue is null
+                    ? null
+                    : System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(v.DefaultJsonValue),
+                UpdatedAt = v.UpdatedAt
             }).ToList()
         };
     }

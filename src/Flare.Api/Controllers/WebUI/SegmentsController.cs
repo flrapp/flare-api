@@ -38,16 +38,16 @@ public class SegmentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<SegmentResponseDto>> CreateSegment(Guid projectId, [FromBody] CreateSegmentDto dto)
+    public async Task<IActionResult> CreateSegment(Guid projectId, [FromBody] CreateSegmentDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _segmentService.CreateAsync(projectId, dto, userId, username);
+        await _segmentService.CreateAsync(projectId, dto, userId, username);
 
-        return CreatedAtAction(nameof(GetSegments), new { projectId }, result);
+        return Created();
     }
 
     [HttpPut("{segmentId}")]
@@ -57,14 +57,15 @@ public class SegmentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<SegmentResponseDto>> UpdateSegment(Guid projectId, Guid segmentId, [FromBody] UpdateSegmentDto dto)
+    public async Task<IActionResult> UpdateSegment(Guid projectId, Guid segmentId, [FromBody] UpdateSegmentDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        return Ok(await _segmentService.UpdateAsync(segmentId, dto, userId, username));
+        await _segmentService.UpdateAsync(segmentId, dto, userId, username);
+        return Ok();
     }
 
     [HttpDelete("{segmentId}")]

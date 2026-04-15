@@ -1,4 +1,5 @@
 using Flare.Domain.Entities;
+using Flare.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,6 +14,9 @@ public class FeatureFlagConfiguration : IEntityTypeConfiguration<FeatureFlag>
         builder.Property(e => e.Key).HasMaxLength(100).IsRequired();
         builder.Property(e => e.Name).HasMaxLength(255).IsRequired();
         builder.Property(e => e.Description).HasMaxLength(1000);
+        builder.Property(e => e.Type)
+            .HasDefaultValue(FeatureFlagType.Boolean)
+            .IsRequired();
 
         builder.HasOne(e => e.Project)
             .WithMany(p => p.FeatureFlags)

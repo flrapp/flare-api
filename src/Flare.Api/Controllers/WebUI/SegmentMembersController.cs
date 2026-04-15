@@ -38,14 +38,15 @@ public class SegmentMembersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<SegmentMemberResponseDto>>> AddMembers(Guid segmentId, [FromBody] AddSegmentMembersDto dto)
+    public async Task<ActionResult> AddMembers(Guid segmentId, [FromBody] AddSegmentMembersDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        return Ok(await _segmentService.AddMembersAsync(segmentId, dto, userId, username));
+        await _segmentService.AddMembersAsync(segmentId, dto, userId, username);
+        return Ok();
     }
 
     [HttpDelete("{memberKey}")]
