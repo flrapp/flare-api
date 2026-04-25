@@ -309,7 +309,7 @@ public class FeatureFlagService : IFeatureFlagService
                 return (FlagValueReader.ReadServe(rule, type), "TARGETING_MATCH");
         }
 
-        return (FlagValueReader.ReadDefault(flagValue, type), "DEFAULT");
+        return (FlagValueReader.ReadDefault(flagValue, type), "STATIC");
     }
 
     private async Task<bool> AllConditionsMatchAsync(
