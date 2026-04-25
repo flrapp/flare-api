@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Flare.Api.Constants;
 using Flare.Api.Filters;
+using Flare.Api.RateLimiting;
 using Flare.Application.Authorization;
 using Flare.Application.Authorization.Requirements;
 using Flare.Application.Interfaces;
@@ -10,6 +11,7 @@ using Flare.Domain.Enums;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -157,6 +159,23 @@ public static class ServiceCollectionRegistration
                     })
                 );
         }
+        return services;
+    }
+
+    public static IServiceCollection ConfigureRateLimiting(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<RateLimitingOptions>(configuration.GetSection(RateLimitingOptions.SectionName));
+
+        services.AddSingleton<SdkEvaluationRateLimiterPolicy>();
+
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy<string, SdkEvaluationRateLimiterPolicy>(RateLimitingOptions.SdkEvaluationPolicyName);
+        });
+
+        services.Configure<MvcOptions>(opts => opts.Conventions.Add(new SdkRateLimitingConvention()));
+
         return services;
     }
 }
