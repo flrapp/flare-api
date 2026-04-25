@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Flare.Domain.Enums;
 
 namespace Flare.Application.DTOs;
 
@@ -12,5 +13,8 @@ public class CreateFeatureFlagDto
     [MaxLength(255, ErrorMessage = "Name cannot exceed 255 characters")]
     public string? Description { get; init; }
     [MaxLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
-    public required string Key { get; init; } 
+    public required string Key { get; init; }
+
+    [Required]
+    public required FeatureFlagType Type { get; init; }
 }

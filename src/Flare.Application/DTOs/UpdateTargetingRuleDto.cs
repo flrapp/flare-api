@@ -5,7 +5,7 @@ namespace Flare.Application.DTOs;
 public class UpdateTargetingRuleDto
 {
     [Required]
-    public bool ServeValue { get; init; }
+    public required TypedValueDto ServeValue { get; init; }
 
     [Required]
     public int Priority { get; init; }

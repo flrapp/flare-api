@@ -26,14 +26,15 @@ public class TargetingConditionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TargetingRuleDto>> UpdateCondition(Guid conditionId, [FromBody] UpdateTargetingConditionDto dto)
+    public async Task<IActionResult> UpdateCondition(Guid conditionId, [FromBody] UpdateTargetingConditionDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        return Ok(await _targetingRuleService.UpdateConditionAsync(conditionId, dto, userId, username));
+        await _targetingRuleService.UpdateConditionAsync(conditionId, dto, userId, username);
+        return Ok();
     }
 
     [HttpDelete("targeting-conditions/{conditionId}")]

@@ -11,6 +11,8 @@ public class FeatureFlagValueConfiguration : IEntityTypeConfiguration<FeatureFla
         builder.HasKey(e => e.Id);
         builder.HasIndex(e => new { e.FeatureFlagId, e.ScopeId }).IsUnique();
 
+        builder.Property(e => e.DefaultJsonValue).HasColumnType("text");
+
         builder.HasOne(e => e.FeatureFlag)
             .WithMany(f => f.Values)
             .HasForeignKey(e => e.FeatureFlagId)

@@ -132,6 +132,7 @@ public class FeatureFlagRepository : IFeatureFlagRepository
     {
         return await _context.FeatureFlagValues
             .Include(ffv => ffv.Scope)
+            .Include(ffv => ffv.FeatureFlag)
             .Include(ffv => ffv.TargetingRules)
                 .ThenInclude(r => r.Conditions)
             .Where(ffv => ffv.FeatureFlag.Key == featureFlagKey &&

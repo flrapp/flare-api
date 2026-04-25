@@ -43,10 +43,11 @@ public class TargetingRuleService : ITargetingRuleService
             throw new ForbiddenException("You do not have permission to view targeting rules for this project.");
 
         var rules = await _targetingRuleRepository.GetByFlagValueIdAsync(flagValueId);
-        return rules.Select(MapRuleToDto).ToList();
+        var type = flagValue.FeatureFlag.Type;
+        return rules.Select(r => MapRuleToDto(r, type)).ToList();
     }
 
-    public async Task<TargetingRuleDto> CreateRuleAsync(Guid flagValueId, CreateTargetingRuleDto dto, Guid currentUserId, string actorUsername)
+    public async Task CreateRuleAsync(Guid flagValueId, CreateTargetingRuleDto dto, Guid currentUserId, string actorUsername)
     {
         var flagValue = await _featureFlagRepository.GetValueByIdWithNavigationsAsync(flagValueId);
         if (flagValue == null)
@@ -60,20 +61,19 @@ public class TargetingRuleService : ITargetingRuleService
 
         var nextPriority = await _targetingRuleRepository.CountByFlagValueIdAsync(flagValueId) + 1;
 
-        var rule = new TargetingRule
+        var conditions = dto.Conditions.Select(c => new TargetingCondition
         {
             Id = Guid.NewGuid(),
-            FeatureFlagValueId = flagValueId,
-            Priority = nextPriority,
-            ServeValue = dto.ServeValue,
-            Conditions = dto.Conditions.Select(c => new TargetingCondition
-            {
-                Id = Guid.NewGuid(),
-                AttributeKey = c.AttributeKey,
-                Operator = c.Operator,
-                Value = c.Value
-            }).ToList()
-        };
+            AttributeKey = c.AttributeKey,
+            Operator = c.Operator,
+            Value = c.Value
+        }).ToList();
+
+        var rule = dto.ServeValue.BuildRule(
+            priority: nextPriority,
+            flagValueId: flagValueId,
+            parentType: flagValue.FeatureFlag.Type,
+            conditions: conditions);
 
         await _targetingRuleRepository.AddAsync(rule);
         await InvalidateFlagCacheAsync(flagValue);
@@ -81,11 +81,9 @@ public class TargetingRuleService : ITargetingRuleService
         _auditLogger.LogProjectAudit(
             flagValue.FeatureFlag.Project.Alias, actorUsername,
             "TargetingRule", flagValue.Scope.Alias, "Created");
-
-        return MapRuleToDto(rule);
     }
 
-    public async Task<TargetingRuleDto> UpdateRuleAsync(Guid ruleId, UpdateTargetingRuleDto dto, Guid currentUserId, string actorUsername)
+    public async Task UpdateRuleAsync(Guid ruleId, UpdateTargetingRuleDto dto, Guid currentUserId, string actorUsername)
     {
         var rule = await _targetingRuleRepository.GetByIdWithConditionsAsync(ruleId);
         if (rule == null)
@@ -99,7 +97,7 @@ public class TargetingRuleService : ITargetingRuleService
         if (dto.Priority != rule.Priority && await _targetingRuleRepository.PriorityExistsAsync(flagValue.Id, dto.Priority, excludeRuleId: ruleId))
             throw new BadRequestException($"Priority {dto.Priority} is already in use by another rule for this flag value.");
 
-        rule.ServeValue = dto.ServeValue;
+        dto.ServeValue.ApplyTo(rule, flagValue.FeatureFlag.Type);
         rule.Priority = dto.Priority;
 
         await _targetingRuleRepository.UpdateAsync(rule);
@@ -108,8 +106,6 @@ public class TargetingRuleService : ITargetingRuleService
         _auditLogger.LogProjectAudit(
             flagValue.FeatureFlag.Project.Alias, actorUsername,
             "TargetingRule", flagValue.Scope.Alias, "Updated");
-
-        return MapRuleToDto(rule);
     }
 
     public async Task DeleteRuleAsync(Guid ruleId, Guid currentUserId, string actorUsername)
@@ -142,7 +138,7 @@ public class TargetingRuleService : ITargetingRuleService
             "TargetingRule", flagValue.Scope.Alias, "Deleted");
     }
 
-    public async Task<List<TargetingRuleDto>> ReorderRulesAsync(Guid flagValueId, ReorderTargetingRulesDto dto, Guid currentUserId, string actorUsername)
+    public async Task ReorderRulesAsync(Guid flagValueId, ReorderTargetingRulesDto dto, Guid currentUserId, string actorUsername)
     {
         var flagValue = await _featureFlagRepository.GetValueByIdWithNavigationsAsync(flagValueId);
         if (flagValue == null)
@@ -168,11 +164,9 @@ public class TargetingRuleService : ITargetingRuleService
         _auditLogger.LogProjectAudit(
             flagValue.FeatureFlag.Project.Alias, actorUsername,
             "TargetingRule", flagValue.Scope.Alias, "Reordered");
-
-        return existingRules.OrderBy(r => r.Priority).Select(MapRuleToDto).ToList();
     }
 
-    public async Task<TargetingRuleDto> AddConditionAsync(Guid ruleId, CreateTargetingConditionDto dto, Guid currentUserId, string actorUsername)
+    public async Task AddConditionAsync(Guid ruleId, CreateTargetingConditionDto dto, Guid currentUserId, string actorUsername)
     {
         var rule = await _targetingRuleRepository.GetByIdWithConditionsAsync(ruleId);
         if (rule == null)
@@ -202,11 +196,9 @@ public class TargetingRuleService : ITargetingRuleService
         _auditLogger.LogProjectAudit(
             flagValue.FeatureFlag.Project.Alias, actorUsername,
             "TargetingCondition", flagValue.Scope.Alias, "Created");
-
-        return MapRuleToDto(rule);
     }
 
-    public async Task<TargetingRuleDto> UpdateConditionAsync(Guid conditionId, UpdateTargetingConditionDto dto, Guid currentUserId, string actorUsername)
+    public async Task UpdateConditionAsync(Guid conditionId, UpdateTargetingConditionDto dto, Guid currentUserId, string actorUsername)
     {
         var condition = await _targetingRuleRepository.GetConditionByIdAsync(conditionId);
         if (condition == null)
@@ -229,8 +221,6 @@ public class TargetingRuleService : ITargetingRuleService
         _auditLogger.LogProjectAudit(
             flagValue.FeatureFlag.Project.Alias, actorUsername,
             "TargetingCondition", flagValue.Scope.Alias, "Updated");
-
-        return MapRuleToDto(condition.TargetingRule);
     }
 
     public async Task DeleteConditionAsync(Guid conditionId, Guid currentUserId, string actorUsername)
@@ -296,14 +286,14 @@ public class TargetingRuleService : ITargetingRuleService
         await _hybridCache.RemoveAsync(cacheKey);
     }
 
-    private static TargetingRuleDto MapRuleToDto(TargetingRule rule)
+    private static TargetingRuleDto MapRuleToDto(TargetingRule rule, FeatureFlagType type)
     {
         return new TargetingRuleDto
         {
             Id = rule.Id,
             FeatureFlagValueId = rule.FeatureFlagValueId,
             Priority = rule.Priority,
-            ServeValue = rule.ServeValue,
+            ServeValue = FlagValueReader.ReadServe(rule, type),
             Conditions = rule.Conditions
                 .Select(c => new TargetingConditionDto
                 {

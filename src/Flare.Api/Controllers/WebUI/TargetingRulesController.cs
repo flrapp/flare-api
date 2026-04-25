@@ -38,16 +38,16 @@ public class TargetingRulesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TargetingRuleDto>> CreateTargetingRule(Guid flagValueId, [FromBody] CreateTargetingRuleDto dto)
+    public async Task<IActionResult> CreateTargetingRule(Guid flagValueId, [FromBody] CreateTargetingRuleDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _targetingRuleService.CreateRuleAsync(flagValueId, dto, userId, username);
+        await _targetingRuleService.CreateRuleAsync(flagValueId, dto, userId, username);
 
-        return CreatedAtAction(nameof(GetTargetingRules), new { flagValueId }, result);
+        return Created();
     }
 
     [HttpPut("targeting-rules/{ruleId}")]
@@ -57,14 +57,15 @@ public class TargetingRulesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TargetingRuleDto>> UpdateTargetingRule(Guid ruleId, [FromBody] UpdateTargetingRuleDto dto)
+    public async Task<ActionResult> UpdateTargetingRule(Guid ruleId, [FromBody] UpdateTargetingRuleDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        return Ok(await _targetingRuleService.UpdateRuleAsync(ruleId, dto, userId, username));
+        await _targetingRuleService.UpdateRuleAsync(ruleId, dto, userId, username);
+        return Ok();
     }
 
     [HttpDelete("targeting-rules/{ruleId}")]
@@ -88,14 +89,15 @@ public class TargetingRulesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<TargetingRuleDto>>> ReorderTargetingRules(Guid flagValueId, [FromBody] ReorderTargetingRulesDto dto)
+    public async Task<IActionResult> ReorderTargetingRules(Guid flagValueId, [FromBody] ReorderTargetingRulesDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        return Ok(await _targetingRuleService.ReorderRulesAsync(flagValueId, dto, userId, username));
+        await _targetingRuleService.ReorderRulesAsync(flagValueId, dto, userId, username);
+        return Ok();
     }
 
     [HttpPost("targeting-rules/{ruleId}/conditions")]
@@ -105,15 +107,15 @@ public class TargetingRulesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TargetingRuleDto>> AddCondition(Guid ruleId, [FromBody] CreateTargetingConditionDto dto)
+    public async Task<IActionResult> AddCondition(Guid ruleId, [FromBody] CreateTargetingConditionDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _targetingRuleService.AddConditionAsync(ruleId, dto, userId, username);
+        await _targetingRuleService.AddConditionAsync(ruleId, dto, userId, username);
 
-        return CreatedAtAction(nameof(GetTargetingRules), new { flagValueId = result.FeatureFlagValueId }, result);
+        return Created();
     }
 }

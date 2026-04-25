@@ -5,7 +5,7 @@ namespace Flare.Application.DTOs;
 public class CreateTargetingRuleDto
 {
     [Required]
-    public bool ServeValue { get; init; }
+    public required TypedValueDto ServeValue { get; init; }
 
     [Required]
     [MinLength(1, ErrorMessage = "At least one condition is required.")]

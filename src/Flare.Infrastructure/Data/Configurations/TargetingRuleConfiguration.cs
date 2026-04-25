@@ -12,6 +12,8 @@ public class TargetingRuleConfiguration : IEntityTypeConfiguration<TargetingRule
 
         builder.HasIndex(e => new { e.FeatureFlagValueId, e.Priority });
 
+        builder.Property(e => e.ServeJsonValue).HasColumnType("text");
+
         builder.HasOne(e => e.FeatureFlagValue)
             .WithMany(v => v.TargetingRules)
             .HasForeignKey(e => e.FeatureFlagValueId)
