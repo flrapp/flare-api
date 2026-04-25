@@ -262,6 +262,7 @@ public class FeatureFlagService : IFeatureFlagService
             FlagKey = flagKey,
             Value = value,
             Variant = FlagValueReader.Variant(value),
+            Type = featureFlagValue.FeatureFlag.Type,
             Reason = reason,
         };
     }
@@ -285,6 +286,7 @@ public class FeatureFlagService : IFeatureFlagService
                 FlagKey = ffv.FeatureFlag.Key,
                 Value = value,
                 Variant = FlagValueReader.Variant(value),
+                Type = ffv.FeatureFlag.Type,
                 Reason = reason,
             });
         }
