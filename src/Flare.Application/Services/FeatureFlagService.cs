@@ -99,9 +99,6 @@ public class FeatureFlagService : IFeatureFlagService
             throw new ForbiddenException("You do not have permission to update feature flags in this project.");
         }
 
-        if (await _featureFlagRepository.ExistsByProjectAndKeyAsync(featureFlag.ProjectId, featureFlag.Key))
-            throw new InvalidOperationException("Feature flag with this key already exists in this project.");
-
         featureFlag.Name = dto.Name;
         featureFlag.Description = dto.Description;
         var previousKey = featureFlag.Key;

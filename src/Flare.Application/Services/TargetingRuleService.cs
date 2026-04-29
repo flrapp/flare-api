@@ -39,7 +39,7 @@ public class TargetingRuleService : ITargetingRuleService
         if (flagValue == null)
             throw new NotFoundException("Feature flag value not found.");
 
-        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ViewTargetingRules))
+        if (!await _permissionService.HasProjectPermissionAsync(currentUserId, flagValue.FeatureFlag.ProjectId, ProjectPermission.ManageTargetingRules))
             throw new ForbiddenException("You do not have permission to view targeting rules for this project.");
 
         var rules = await _targetingRuleRepository.GetByFlagValueIdAsync(flagValueId);
