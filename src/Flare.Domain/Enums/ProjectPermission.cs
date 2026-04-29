@@ -9,8 +9,6 @@ public enum ProjectPermission
     RegenerateApiKey,
     ManageProjectSettings,
     DeleteProject,
-    ViewSegments,
     ManageSegments,
-    ViewTargetingRules,
     ManageTargetingRules
 }
