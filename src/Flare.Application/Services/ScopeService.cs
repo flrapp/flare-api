@@ -15,6 +15,7 @@ public class ScopeService : IScopeService
     private readonly IScopeRepository _scopeRepository;
     private readonly IProjectRepository _projectRepository;
     private readonly IProjectUserRepository _projectUserRepository;
+    private readonly IFeatureFlagRepository _featureFlagRepository;
     private readonly IPermissionService _permissionService;
     private readonly HybridCache _hybridCache;
     private readonly IAuditLogger _auditLogger;
@@ -23,6 +24,7 @@ public class ScopeService : IScopeService
         IScopeRepository scopeRepository,
         IProjectRepository projectRepository,
         IProjectUserRepository projectUserRepository,
+        IFeatureFlagRepository featureFlagRepository,
         IPermissionService permissionService,
         HybridCache hybridCache,
         IAuditLogger auditLogger)
@@ -30,6 +32,7 @@ public class ScopeService : IScopeService
         _scopeRepository = scopeRepository;
         _projectRepository = projectRepository;
         _projectUserRepository = projectUserRepository;
+        _featureFlagRepository = featureFlagRepository;
         _permissionService = permissionService;
         _hybridCache = hybridCache;
         _auditLogger = auditLogger;
@@ -68,6 +71,13 @@ public class ScopeService : IScopeService
         };
 
         await _scopeRepository.AddAsync(scope);
+
+        var featureFlags = await _featureFlagRepository.GetByProjectIdAsync(projectId);
+        if (featureFlags.Count > 0)
+        {
+            var values = featureFlags.Select(f => f.CreateValueForScope(scope.Id));
+            await _featureFlagRepository.AddValuesAsync(values);
+        }
 
         _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Scope", dto.Alias, "Created");
 

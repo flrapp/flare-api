@@ -141,6 +141,12 @@ public class FeatureFlagRepository : IFeatureFlagRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task AddValuesAsync(IEnumerable<FeatureFlagValue> values)
+    {
+        _context.FeatureFlagValues.AddRange(values);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<List<FeatureFlagValue>> GetAllByProjectIdAndScopeAliasAsync(Guid projectId, string scopeAlias)
     {
         return await _context.FeatureFlagValues

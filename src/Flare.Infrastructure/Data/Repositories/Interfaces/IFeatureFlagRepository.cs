@@ -34,4 +34,5 @@ public interface IFeatureFlagRepository
     /// Includes Scope and FeatureFlag navigation properties.
     /// </summary>
     Task<List<FeatureFlagValue>> GetAllByProjectIdAndScopeAliasAsync(Guid projectId, string scopeAlias);
+    Task AddValuesAsync(IEnumerable<FeatureFlagValue> values);
 }
