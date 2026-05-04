@@ -73,6 +73,7 @@ public class Startup
 
         app.UseEndpoints(endpoints =>
         {
+            endpoints.MapPrometheusScrapingEndpoint("/metrics");
             endpoints.MapControllers();
 
             if (env.IsDevelopment())

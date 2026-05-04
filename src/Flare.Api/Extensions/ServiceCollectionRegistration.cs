@@ -18,6 +18,7 @@ using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using OpenTelemetry.Exporter.Prometheus;
 
 namespace Flare.Api.Extensions;
 
@@ -138,27 +139,37 @@ public static class ServiceCollectionRegistration
     public static IServiceCollection ConfigureTracingAndMetrics(this IServiceCollection services, IConfiguration configuration)
     {
         var otelEndpoint = configuration.GetValue<string>(EnvironmentVariablesNames.OtelEndpoint);
-        if (!string.IsNullOrWhiteSpace(otelEndpoint))
-        {
-            services.AddOpenTelemetry()
-                .WithTracing(tracing => tracing
-                    .AddAspNetCoreInstrumentation()
-                    .AddOtlpExporter(opts =>
-                    {
-                        opts.Endpoint = new Uri(otelEndpoint);
-                        opts.Protocol = OtlpExportProtocol.HttpProtobuf;
-                    }))
-                .WithMetrics(metrics => metrics
+
+        var builder = services.AddOpenTelemetry()
+            .WithMetrics(metrics =>
+            {
+                metrics
                     .AddAspNetCoreInstrumentation()
                     .AddRuntimeInstrumentation()
                     .AddMeter("Flare.Api")
-                    .AddOtlpExporter(opts =>
+                    .AddPrometheusExporter();
+
+                if (!string.IsNullOrWhiteSpace(otelEndpoint))
+                {
+                    metrics.AddOtlpExporter(opts =>
                     {
                         opts.Endpoint = new Uri(otelEndpoint);
                         opts.Protocol = OtlpExportProtocol.HttpProtobuf;
-                    })
-                );
+                    });
+                }
+            });
+
+        if (!string.IsNullOrWhiteSpace(otelEndpoint))
+        {
+            builder.WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation()
+                .AddOtlpExporter(opts =>
+                {
+                    opts.Endpoint = new Uri(otelEndpoint);
+                    opts.Protocol = OtlpExportProtocol.HttpProtobuf;
+                }));
         }
+
         return services;
     }
 
