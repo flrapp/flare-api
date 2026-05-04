@@ -5,6 +5,8 @@ using Flare.Api.Extensions;
 using Flare.Api.Middleware;
 using Flare.Application;
 using Flare.Infrastructure;
+using Flare.Infrastructure.Data;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 
 namespace Flare.Api;
@@ -56,6 +58,9 @@ public class Startup
         }
    
         services.ConfigureCors(Configuration, Environment);
+
+        services.AddHealthChecks()
+            .AddDbContextCheck<ApplicationDbContext>("database", tags: ["ready"]);
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IApiVersionDescriptionProvider apiVersionDescriptionProvider)
@@ -74,6 +79,11 @@ public class Startup
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapPrometheusScrapingEndpoint("/metrics");
+            endpoints.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+            endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions
+            {
+                Predicate = check => check.Tags.Contains("ready")
+            });
             endpoints.MapControllers();
 
             if (env.IsDevelopment())
