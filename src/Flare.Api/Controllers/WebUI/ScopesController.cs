@@ -26,7 +26,7 @@ public class ScopesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ScopeResponseDto>> CreateScope(Guid projectId, [FromBody] CreateScopeDto dto)
+    public async Task<ActionResult> CreateScope(Guid projectId, [FromBody] CreateScopeDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -35,9 +35,9 @@ public class ScopesController : ControllerBase
         
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _scopeService.CreateAsync(projectId, dto, userId, username);
+        await _scopeService.CreateAsync(projectId, dto, userId, username);
 
-        return CreatedAtAction(nameof(GetScopes), new { projectId = result.ProjectId }, result);
+        return Created();
     }
 
     [HttpGet("projects/{projectId}/scopes")]
@@ -61,7 +61,7 @@ public class ScopesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ScopeResponseDto>> UpdateScope(Guid scopeId, [FromBody] UpdateScopeDto dto)
+    public async Task<ActionResult> UpdateScope(Guid scopeId, [FromBody] UpdateScopeDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -69,9 +69,9 @@ public class ScopesController : ControllerBase
         }
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _scopeService.UpdateAsync(scopeId, dto, userId, username);
+        await _scopeService.UpdateAsync(scopeId, dto, userId, username);
 
-        return Ok(result);
+        return Ok();
     }
 
     [HttpDelete("scopes/{scopeId}")]

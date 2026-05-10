@@ -38,7 +38,7 @@ public class ScopeService : IScopeService
         _auditLogger = auditLogger;
     }
 
-    public async Task<ScopeResponseDto> CreateAsync(Guid projectId, CreateScopeDto dto, Guid currentUserId, string actorUsername)
+    public async Task CreateAsync(Guid projectId, CreateScopeDto dto, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageScopes))
         {
@@ -80,11 +80,9 @@ public class ScopeService : IScopeService
         }
 
         _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Scope", dto.Alias, "Created");
-
-        return MapToResponseDto(scope);
     }
 
-    public async Task<ScopeResponseDto> UpdateAsync(Guid scopeId, UpdateScopeDto dto, Guid currentUserId, string actorUsername)
+    public async Task UpdateAsync(Guid scopeId, UpdateScopeDto dto, Guid currentUserId, string actorUsername)
     {
         var scope = await _scopeRepository.GetByIdWithProjectAsync(scopeId);
         if (scope == null)
@@ -107,8 +105,6 @@ public class ScopeService : IScopeService
         await _hybridCache.RemoveByTagAsync(scopeTag);
 
         _auditLogger.LogProjectAudit(scope.Project.Alias, actorUsername, "Scope", scope.Alias, "Updated");
-
-        return MapToResponseDto(scope);
     }
 
     public async Task DeleteAsync(Guid scopeId, Guid currentUserId, string actorUsername)

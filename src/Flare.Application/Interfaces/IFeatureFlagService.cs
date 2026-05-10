@@ -11,9 +11,6 @@ public interface IFeatureFlagService
     Task<List<FeatureFlagResponseDto>> GetByProjectIdAsync(Guid projectId, Guid currentUserId);
     Task UpdateValueAsync(Guid featureFlagId, UpdateFeatureFlagValueDto dto, Guid currentUserId, string actorUsername);
 
-    Task<GetFeatureFlagValueDto> GetFeatureFlagValueAsync(string projectAlias, string scopeAlias,
-        string featureFlagKey);
-
     /// <summary>
     /// Evaluates a feature flag using OpenFeature-compatible request/response format.
     /// </summary>
