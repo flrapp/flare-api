@@ -268,18 +268,31 @@ public class UserService : IUserService
         _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "BruteForceUnlocked");
     }
 
-    public async Task<List<AvailableUserDto>> GetAvailableUsersForProjectAsync(Guid projectId)
+    public async Task<List<AvailableUserDto>> GetAvailableUsersForProjectAsync(Guid projectId, string? search = null)
     {
         var allUsers = await _userRepository.GetAllActiveUsersAsync();
         var projectUsers = await _projectUserRepository.GetByProjectIdAsync(projectId);
         var projectUserIds = projectUsers.Select(pu => pu.UserId).ToHashSet();
 
-        return allUsers.Select(u => new AvailableUserDto
+        IEnumerable<User> filtered = allUsers;
+
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            UserId = u.Id,
-            Username = u.Username,
-            FullName = u.FullName,
-            IsAlreadyMember = projectUserIds.Contains(u.Id)
-        }).ToList();
+            var term = search.Trim().ToLower();
+            filtered = filtered.Where(u =>
+                u.Username.ToLower().Contains(term) ||
+                (u.FullName != null && u.FullName.ToLower().Contains(term)));
+        }
+
+        return filtered
+            .Take(10)
+            .Select(u => new AvailableUserDto
+            {
+                UserId = u.Id,
+                Username = u.Username,
+                FullName = u.FullName,
+                IsAlreadyMember = projectUserIds.Contains(u.Id)
+            })
+            .ToList();
     }
 }

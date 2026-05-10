@@ -7,7 +7,7 @@ public interface IProjectUserService
 {
     Task<ProjectUserResponseDto> InviteUserAsync(Guid projectId, InviteUserDto dto, Guid inviterUserId, string actorUsername);
     Task RemoveUserAsync(Guid projectId, Guid userId, Guid currentUserId, string actorUsername);
-    Task<List<ProjectUserResponseDto>> GetProjectUsersAsync(Guid projectId, Guid currentUserId);
+    Task<PagedResult<ProjectUserResponseDto>> GetProjectUsersAsync(Guid projectId, Guid currentUserId, string? search = null, int page = 1, int pageSize = 20);
     Task<ProjectUserResponseDto> GetProjectUserAsync(Guid projectId, Guid userId, Guid currentUserId);
     Task AssignProjectPermissionsAsync(Guid projectId, Guid userId, AssignProjectPermissionsDto dto, Guid currentUserId, string actorUsername);
     Task RevokeProjectPermissionAsync(Guid projectId, Guid userId, ProjectPermission permission, Guid currentUserId, string actorUsername);

@@ -170,7 +170,7 @@ public class ProjectUserService : IProjectUserService
         _auditLogger.LogProjectAudit(project.Alias, actorUsername, "ProjectMember", null, "UserRemoved");
     }
 
-    public async Task<List<ProjectUserResponseDto>> GetProjectUsersAsync(Guid projectId, Guid currentUserId)
+    public async Task<PagedResult<ProjectUserResponseDto>> GetProjectUsersAsync(Guid projectId, Guid currentUserId, string? search = null, int page = 1, int pageSize = 20)
     {
         if (!await _permissionService.IsProjectMemberAsync(currentUserId, projectId))
         {
@@ -189,7 +189,27 @@ public class ProjectUserService : IProjectUserService
             }
         }
 
-        return responseDtos;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            responseDtos = responseDtos.Where(u =>
+                u.Username.ToLower().Contains(term) ||
+                u.FullName.ToLower().Contains(term)).ToList();
+        }
+
+        var totalCount = responseDtos.Count;
+        var items = responseDtos
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<ProjectUserResponseDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<ProjectUserResponseDto> GetProjectUserAsync(Guid projectId, Guid userId, Guid currentUserId)
