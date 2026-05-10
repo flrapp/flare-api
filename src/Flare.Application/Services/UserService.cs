@@ -67,26 +67,47 @@ public class UserService : IUserService
         };
     }
 
-    public async Task<List<UserResponseDto>> GetAllUsersAsync(bool? isActive = null)
+    public async Task<PagedResult<UserResponseDto>> GetAllUsersAsync(bool? isActive = null, string? search = null, int page = 1, int pageSize = 20)
     {
         var users = await _userRepository.GetAllAsync();
 
         if (isActive.HasValue)
             users = users.Where(u => u.IsActive == isActive.Value).ToList();
 
-        return users.Select(u => new UserResponseDto
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            UserId = u.Id,
-            Username = u.Username,
-            FullName = u.FullName,
-            GlobalRole = u.GlobalRole,
-            IsActive = u.IsActive,
-            CreatedAt = u.CreatedAt,
-            LastLoginAt = u.LastLoginAt,
-            IsBruteForceLocked = u.IsBruteForceLocked,
-            FailedLoginAttempts = u.FailedLoginAttempts,
-            LockedUntil = u.LockedUntil
-        }).ToList();
+            var term = search.Trim().ToLower();
+            users = users.Where(u =>
+                u.Username.ToLower().Contains(term) ||
+                (u.FullName != null && u.FullName.ToLower().Contains(term))).ToList();
+        }
+
+        var totalCount = users.Count;
+        var items = users
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new UserResponseDto
+            {
+                UserId = u.Id,
+                Username = u.Username,
+                FullName = u.FullName,
+                GlobalRole = u.GlobalRole,
+                IsActive = u.IsActive,
+                CreatedAt = u.CreatedAt,
+                LastLoginAt = u.LastLoginAt,
+                IsBruteForceLocked = u.IsBruteForceLocked,
+                FailedLoginAttempts = u.FailedLoginAttempts,
+                LockedUntil = u.LockedUntil
+            })
+            .ToList();
+
+        return new PagedResult<UserResponseDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<UserResponseDto> GetUserByIdAsync(Guid userId)
