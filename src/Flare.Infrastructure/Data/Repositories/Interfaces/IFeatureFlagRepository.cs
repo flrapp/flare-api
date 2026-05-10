@@ -8,6 +8,7 @@ public interface IFeatureFlagRepository
     Task<FeatureFlag?> GetByIdWithValuesAsync(Guid featureFlagId);
     Task<FeatureFlag?> GetByProjectAndKeyAsync(Guid projectId, string key);
     Task<List<FeatureFlag>> GetByProjectIdAsync(Guid projectId);
+    Task<(List<FeatureFlag> Items, int TotalCount)> GetPagedAsync(Guid projectId, int skip, int take, string? search);
     Task<FeatureFlag> AddAsync(FeatureFlag featureFlag);
     Task UpdateAsync(FeatureFlag featureFlag);
     Task DeleteAsync(Guid featureFlagId);

@@ -161,6 +161,39 @@ public class FeatureFlagService : IFeatureFlagService
         return responseDtos;
     }
 
+    public async Task<PagedResult<FeatureFlagResponseDto>> GetPagedByProjectIdAsync(Guid projectId, Guid currentUserId, int page, int pageSize, string? search)
+    {
+        if (!await _permissionService.IsProjectMemberAsync(currentUserId, projectId))
+            throw new ForbiddenException("You do not have access to this project.");
+
+        var skip = (page - 1) * pageSize;
+        var (items, totalCount) = await _featureFlagRepository.GetPagedAsync(projectId, skip, pageSize, search);
+
+        var dtos = new List<FeatureFlagResponseDto>(items.Count);
+        foreach (var featureFlag in items)
+            dtos.Add(await MapToResponseDtoAsync(featureFlag));
+
+        return new PagedResult<FeatureFlagResponseDto>
+        {
+            Items = dtos,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task<FeatureFlagResponseDto> GetByIdAsync(Guid featureFlagId, Guid currentUserId)
+    {
+        var featureFlag = await _featureFlagRepository.GetByIdWithValuesAsync(featureFlagId);
+        if (featureFlag == null)
+            throw new NotFoundException("Feature flag not found.");
+
+        if (!await _permissionService.IsProjectMemberAsync(currentUserId, featureFlag.ProjectId))
+            throw new ForbiddenException("You do not have access to this project.");
+
+        return await MapToResponseDtoAsync(featureFlag);
+    }
+
     public async Task UpdateValueAsync(Guid featureFlagId, UpdateFeatureFlagValueDto dto, Guid currentUserId, string actorUsername)
     {
         var featureFlag = await _featureFlagRepository.GetByIdWithScopesAndProjectAsync(featureFlagId);
