@@ -21,14 +21,18 @@ public class SegmentMembersController : ControllerBase
 
     [HttpGet]
     [Authorize]
-    [ProducesResponseType(typeof(List<SegmentMemberResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<SegmentMemberResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<SegmentMemberResponseDto>>> GetMembers(Guid segmentId)
+    public async Task<ActionResult<PagedResult<SegmentMemberResponseDto>>> GetMembers(
+        Guid segmentId,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        return Ok(await _segmentService.GetMembersAsync(segmentId, userId));
+        return Ok(await _segmentService.GetMembersAsync(segmentId, userId, search, page, pageSize));
     }
 
     [HttpPost]

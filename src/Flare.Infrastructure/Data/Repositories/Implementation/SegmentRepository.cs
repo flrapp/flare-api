@@ -72,6 +72,26 @@ public class SegmentRepository : ISegmentRepository
             .ToListAsync();
     }
 
+    public async Task<(List<SegmentMember> Items, int TotalCount)> GetMembersPagedAsync(Guid segmentId, int skip, int take, string? search)
+    {
+        var query = _context.SegmentMembers.Where(m => m.SegmentId == segmentId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(m => m.TargetingKey.ToLower().Contains(term));
+        }
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderBy(m => m.TargetingKey)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
     public async Task<bool> MemberExistsAsync(Guid segmentId, string targetingKey)
     {
         return await _context.SegmentMembers

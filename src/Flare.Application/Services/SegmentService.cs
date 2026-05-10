@@ -122,7 +122,7 @@ public class SegmentService : ISegmentService
         _auditLogger.LogProjectAudit(segment.Project.Alias, actorUsername, "Segment", null, "Deleted");
     }
 
-    public async Task<List<SegmentMemberResponseDto>> GetMembersAsync(Guid segmentId, Guid currentUserId)
+    public async Task<PagedResult<SegmentMemberResponseDto>> GetMembersAsync(Guid segmentId, Guid currentUserId, string? search = null, int page = 1, int pageSize = 20)
     {
         var segment = await _segmentRepository.GetByIdAsync(segmentId);
         if (segment == null)
@@ -131,8 +131,16 @@ public class SegmentService : ISegmentService
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, segment.ProjectId, ProjectPermission.ManageSegments))
             throw new ForbiddenException("You do not have permission to view segments in this project.");
 
-        var members = await _segmentRepository.GetMembersBySegmentIdAsync(segmentId);
-        return members.Select(MapMemberToDto).ToList();
+        var skip = (page - 1) * pageSize;
+        var (items, totalCount) = await _segmentRepository.GetMembersPagedAsync(segmentId, skip, pageSize, search);
+
+        return new PagedResult<SegmentMemberResponseDto>
+        {
+            Items = items.Select(MapMemberToDto).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task AddMembersAsync(Guid segmentId, AddSegmentMembersDto dto, Guid currentUserId, string actorUsername)
