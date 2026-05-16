@@ -29,9 +29,9 @@ public class ProjectUsersController : ControllerBase
     [ProducesResponseType(typeof(List<AvailableUserDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<List<AvailableUserDto>>> GetAvailableUsers(Guid projectId)
+    public async Task<ActionResult<List<AvailableUserDto>>> GetAvailableUsers(Guid projectId, [FromQuery] string? search = null)
     {
-        var users = await _userService.GetAvailableUsersForProjectAsync(projectId);
+        var users = await _userService.GetAvailableUsersForProjectAsync(projectId, search);
         return Ok(users);
     }
 
@@ -58,14 +58,22 @@ public class ProjectUsersController : ControllerBase
 
     [HttpGet]
     [Authorize]
-    [ProducesResponseType(typeof(List<ProjectUserResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<ProjectUserResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<ProjectUserResponseDto>>> GetProjectUsers(Guid projectId)
+    public async Task<ActionResult<PagedResult<ProjectUserResponseDto>>> GetProjectUsers(
+        Guid projectId,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 1;
+        if (pageSize > 100) pageSize = 100;
+
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _projectUserService.GetProjectUsersAsync(projectId, userId);
+        var result = await _projectUserService.GetProjectUsersAsync(projectId, userId, search, page, pageSize);
 
         return Ok(result);
     }

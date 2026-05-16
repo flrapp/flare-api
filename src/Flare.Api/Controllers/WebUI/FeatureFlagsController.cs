@@ -42,15 +42,36 @@ public class FeatureFlagsController : ControllerBase
 
     [HttpGet("projects/{projectId}/feature-flags")]
     [Authorize]
-    [ProducesResponseType(typeof(List<FeatureFlagResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<FeatureFlagResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<FeatureFlagResponseDto>>> GetFeatureFlags(Guid projectId)
+    public async Task<ActionResult<PagedResult<FeatureFlagResponseDto>>> GetFeatureFlags(
+        Guid projectId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 1;
+        if (pageSize > 25) pageSize = 25;
+
+        var userId = HttpContext.GetCurrentUserId()!.Value;
+        var result = await _featureFlagService.GetPagedByProjectIdAsync(projectId, userId, page, pageSize, search);
+
+        return Ok(result);
+    }
+
+    [HttpGet("feature-flags/{featureFlagId}")]
+    [Authorize]
+    [ProducesResponseType(typeof(FeatureFlagResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FeatureFlagResponseDto>> GetFeatureFlag(Guid featureFlagId)
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
-        var result = await _featureFlagService.GetByProjectIdAsync(projectId, userId);
-
+        var result = await _featureFlagService.GetByIdAsync(featureFlagId, userId);
         return Ok(result);
     }
 

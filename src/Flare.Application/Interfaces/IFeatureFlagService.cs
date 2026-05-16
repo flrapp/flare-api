@@ -9,6 +9,8 @@ public interface IFeatureFlagService
     Task UpdateAsync(Guid featureFlagId, UpdateFeatureFlagDto dto, Guid currentUserId, string actorUsername);
     Task DeleteAsync(Guid featureFlagId, Guid currentUserId, string actorUsername);
     Task<List<FeatureFlagResponseDto>> GetByProjectIdAsync(Guid projectId, Guid currentUserId);
+    Task<PagedResult<FeatureFlagResponseDto>> GetPagedByProjectIdAsync(Guid projectId, Guid currentUserId, int page, int pageSize, string? search);
+    Task<FeatureFlagResponseDto> GetByIdAsync(Guid featureFlagId, Guid currentUserId);
     Task UpdateValueAsync(Guid featureFlagId, UpdateFeatureFlagValueDto dto, Guid currentUserId, string actorUsername);
 
     /// <summary>

@@ -67,26 +67,47 @@ public class UserService : IUserService
         };
     }
 
-    public async Task<List<UserResponseDto>> GetAllUsersAsync(bool? isActive = null)
+    public async Task<PagedResult<UserResponseDto>> GetAllUsersAsync(bool? isActive = null, string? search = null, int page = 1, int pageSize = 20)
     {
         var users = await _userRepository.GetAllAsync();
 
         if (isActive.HasValue)
             users = users.Where(u => u.IsActive == isActive.Value).ToList();
 
-        return users.Select(u => new UserResponseDto
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            UserId = u.Id,
-            Username = u.Username,
-            FullName = u.FullName,
-            GlobalRole = u.GlobalRole,
-            IsActive = u.IsActive,
-            CreatedAt = u.CreatedAt,
-            LastLoginAt = u.LastLoginAt,
-            IsBruteForceLocked = u.IsBruteForceLocked,
-            FailedLoginAttempts = u.FailedLoginAttempts,
-            LockedUntil = u.LockedUntil
-        }).ToList();
+            var term = search.Trim().ToLower();
+            users = users.Where(u =>
+                u.Username.ToLower().Contains(term) ||
+                (u.FullName != null && u.FullName.ToLower().Contains(term))).ToList();
+        }
+
+        var totalCount = users.Count;
+        var items = users
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new UserResponseDto
+            {
+                UserId = u.Id,
+                Username = u.Username,
+                FullName = u.FullName,
+                GlobalRole = u.GlobalRole,
+                IsActive = u.IsActive,
+                CreatedAt = u.CreatedAt,
+                LastLoginAt = u.LastLoginAt,
+                IsBruteForceLocked = u.IsBruteForceLocked,
+                FailedLoginAttempts = u.FailedLoginAttempts,
+                LockedUntil = u.LockedUntil
+            })
+            .ToList();
+
+        return new PagedResult<UserResponseDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<UserResponseDto> UpdateUserAsync(Guid userId, UpdateUserDto dto, string actorUsername)
@@ -208,18 +229,31 @@ public class UserService : IUserService
         _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "BruteForceUnlocked");
     }
 
-    public async Task<List<AvailableUserDto>> GetAvailableUsersForProjectAsync(Guid projectId)
+    public async Task<List<AvailableUserDto>> GetAvailableUsersForProjectAsync(Guid projectId, string? search = null)
     {
         var allUsers = await _userRepository.GetAllActiveUsersAsync();
         var projectUsers = await _projectUserRepository.GetByProjectIdAsync(projectId);
         var projectUserIds = projectUsers.Select(pu => pu.UserId).ToHashSet();
 
-        return allUsers.Select(u => new AvailableUserDto
+        IEnumerable<User> filtered = allUsers;
+
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            UserId = u.Id,
-            Username = u.Username,
-            FullName = u.FullName,
-            IsAlreadyMember = projectUserIds.Contains(u.Id)
-        }).ToList();
+            var term = search.Trim().ToLower();
+            filtered = filtered.Where(u =>
+                u.Username.ToLower().Contains(term) ||
+                (u.FullName != null && u.FullName.ToLower().Contains(term)));
+        }
+
+        return filtered
+            .Take(10)
+            .Select(u => new AvailableUserDto
+            {
+                UserId = u.Id,
+                Username = u.Username,
+                FullName = u.FullName,
+                IsAlreadyMember = projectUserIds.Contains(u.Id)
+            })
+            .ToList();
     }
 }

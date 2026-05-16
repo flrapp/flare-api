@@ -40,11 +40,19 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(List<UserResponseDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<UserResponseDto>>> GetAllUsers([FromQuery] bool? isActive = null)
+    [ProducesResponseType(typeof(PagedResult<UserResponseDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<UserResponseDto>>> GetAllUsers(
+        [FromQuery] bool? isActive = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
-        var users = await _userService.GetAllUsersAsync(isActive);
-        return Ok(users);
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 1;
+        if (pageSize > 25) pageSize = 25;
+
+        var result = await _userService.GetAllUsersAsync(isActive, search, page, pageSize);
+        return Ok(result);
     }
 
     [HttpPut("{userId:guid}")]

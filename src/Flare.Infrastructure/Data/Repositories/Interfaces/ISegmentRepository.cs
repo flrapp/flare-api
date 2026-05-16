@@ -13,6 +13,7 @@ public interface ISegmentRepository
     Task DeleteAsync(Guid segmentId);
 
     Task<List<SegmentMember>> GetMembersBySegmentIdAsync(Guid segmentId);
+    Task<(List<SegmentMember> Items, int TotalCount)> GetMembersPagedAsync(Guid segmentId, int skip, int take, string? search);
     Task<bool> MemberExistsAsync(Guid segmentId, string targetingKey);
     Task<bool> IsTargetingKeyInSegmentAsync(Guid segmentId, string targetingKey);
     Task AddMembersAsync(IEnumerable<SegmentMember> members);

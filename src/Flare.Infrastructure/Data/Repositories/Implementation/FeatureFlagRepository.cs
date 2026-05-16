@@ -72,6 +72,33 @@ public class FeatureFlagRepository : IFeatureFlagRepository
             .ToListAsync();
     }
 
+    public async Task<(List<FeatureFlag> Items, int TotalCount)> GetPagedAsync(Guid projectId, int skip, int take, string? search)
+    {
+        var query = _context.FeatureFlags
+            .Where(f => f.ProjectId == projectId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(f =>
+                f.Key.ToLower().Contains(term) ||
+                f.Name.ToLower().Contains(term));
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(f => f.CreatedAt)
+            .ThenByDescending(f => f.Id)
+            .Skip(skip)
+            .Take(take)
+            .Include(f => f.Values)
+                .ThenInclude(v => v.Scope)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
     public async Task<FeatureFlag> AddAsync(FeatureFlag featureFlag)
     {
         _context.FeatureFlags.Add(featureFlag);
