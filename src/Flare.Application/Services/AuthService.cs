@@ -86,38 +86,6 @@ public class AuthService : IAuthService
         return null;
     }
 
-    public async Task<AuthResultDto> RegisterAsync(RegisterDto registerDto)
-    {
-        var exists = await _userRepository.ExistsByUsernameAsync(registerDto.Username);
-
-        if (exists)
-        {
-            throw new InvalidOperationException("User with this username already exists");
-        }
-
-        var user = new User
-        {
-            Id = Guid.NewGuid(),
-            Username = registerDto.Username,
-            PasswordHash = HashPassword(registerDto.Password),
-            FullName = registerDto.FullName,
-            GlobalRole = GlobalRole.User,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _userRepository.AddAsync(user);
-
-        return new AuthResultDto
-        {
-            UserId = user.Id,
-            Username = user.Username,
-            FullName = user.FullName,
-            GlobalRole = user.GlobalRole,
-            MustChangePassword = user.MustChangePassword
-        };
-    }
-
     public async Task<User?> GetUserByIdAsync(Guid userId)
     {
         return await _userRepository.GetActiveByIdAsync(userId);
@@ -180,7 +148,7 @@ public class AuthService : IAuthService
         return BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
     }
 
-    public bool VerifyPassword(string password, string passwordHash)
+    private static bool VerifyPassword(string password, string passwordHash)
     {
         return BCrypt.Net.BCrypt.Verify(password, passwordHash);
     }

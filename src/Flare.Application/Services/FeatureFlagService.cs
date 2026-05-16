@@ -67,23 +67,16 @@ public class FeatureFlagService : IFeatureFlagService
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-
-        try
+        
+        var scopes = await _scopeRepository.GetByProjectIdAsync(projectId);
+        foreach (var scope in scopes)
         {
-            var scopes = await _scopeRepository.GetByProjectIdAsync(projectId);
-            foreach (var scope in scopes)
-            {
-                featureFlag.Values.Add(featureFlag.CreateValueForScope(scope.Id));
-            }
-
-            await _featureFlagRepository.AddAsync(featureFlag);
-
-            _auditLogger.LogProjectAudit(project.Alias, actorUsername, "FeatureFlag", null, "Created");
+            featureFlag.Values.Add(featureFlag.CreateValueForScope(scope.Id));
         }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
-        {
-            throw new BadRequestException("A feature flag with this name already exists in this project.");
-        }
+
+        await _featureFlagRepository.AddAsync(featureFlag);
+
+        _auditLogger.LogProjectAudit(project.Alias, actorUsername, "FeatureFlag", null, "Created");
     }
 
     public async Task UpdateAsync(Guid featureFlagId, UpdateFeatureFlagDto dto, Guid currentUserId, string actorUsername)
@@ -105,18 +98,11 @@ public class FeatureFlagService : IFeatureFlagService
         featureFlag.Key = dto.Key;
         featureFlag.UpdatedAt = DateTime.UtcNow;
 
-        try
-        {
-            await _featureFlagRepository.UpdateAsync(featureFlag);
-            var projectFeatureFlagTag = CacheKeys.FeatureFlagProjectCacheTag(featureFlag.Project.Alias, previousKey);
-            await _hybridCache.RemoveByTagAsync(projectFeatureFlagTag);
+        await _featureFlagRepository.UpdateAsync(featureFlag);
+        var projectFeatureFlagTag = CacheKeys.FeatureFlagProjectCacheTag(featureFlag.Project.Alias, previousKey);
+        await _hybridCache.RemoveByTagAsync(projectFeatureFlagTag);
 
-            _auditLogger.LogProjectAudit(featureFlag.Project.Alias, actorUsername, "FeatureFlag", null, "Updated");
-        }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
-        {
-            throw new BadRequestException("A feature flag with this name already exists in this project.");
-        }
+        _auditLogger.LogProjectAudit(featureFlag.Project.Alias, actorUsername, "FeatureFlag", null, "Updated");
     }
 
     public async Task DeleteAsync(Guid featureFlagId, Guid currentUserId, string actorUsername)

@@ -33,7 +33,7 @@ public class ProjectService : IProjectService
         _auditLogger = auditLogger;
     }
 
-    public async Task<ProjectDetailResponseDto> CreateAsync(CreateProjectDto dto, Guid creatorUserId, string actorUsername)
+    public async Task CreateAsync(CreateProjectDto dto, Guid creatorUserId, string actorUsername)
     {
         if (await _projectRepository.ExistsByAliasAsync(dto.Alias))
         {
@@ -124,11 +124,9 @@ public class ProjectService : IProjectService
         await _projectRepository.AddAsync(project);
 
         _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Created");
-
-        return MapToDetailResponseDto(project);
     }
 
-    public async Task<ProjectDetailResponseDto> UpdateAsync(Guid projectId, UpdateProjectDto dto, Guid currentUserId, string actorUsername)
+    public async Task UpdateAsync(Guid projectId, UpdateProjectDto dto, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.ManageProjectSettings))
         {
@@ -154,8 +152,6 @@ public class ProjectService : IProjectService
 
         var newValue = new { dto.Name, dto.Alias, dto.Description };
         _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "Updated", oldValue, newValue);
-
-        return MapToDetailResponseDto(project);
     }
 
     public async Task DeleteAsync(Guid projectId, Guid currentUserId, string actorUsername)
@@ -221,7 +217,7 @@ public class ProjectService : IProjectService
         return projects.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<RegenerateApiKeyResponseDto> RegenerateApiKeyAsync(Guid projectId, Guid currentUserId, string actorUsername)
+    public async Task RegenerateApiKeyAsync(Guid projectId, Guid currentUserId, string actorUsername)
     {
         if (!await _permissionService.HasProjectPermissionAsync(currentUserId, projectId, ProjectPermission.RegenerateApiKey))
         {
@@ -243,12 +239,6 @@ public class ProjectService : IProjectService
         await _hybridCache.RemoveByTagAsync(CacheKeys.ProjectCacheTag(project.Alias));
 
         _auditLogger.LogProjectAudit(project.Alias, actorUsername, "Project", null, "ApiKeyRegenerated");
-
-        return new RegenerateApiKeyResponseDto
-        {
-            ApiKey = newApiKey,
-            RegeneratedAt = DateTime.UtcNow
-        };
     }
 
     public async Task ArchiveAsync(Guid projectId, Guid currentUserId, string actorUsername)

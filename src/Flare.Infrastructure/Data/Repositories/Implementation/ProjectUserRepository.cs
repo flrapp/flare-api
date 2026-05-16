@@ -126,6 +126,27 @@ public class ProjectUserRepository : IProjectUserRepository
         }
     }
 
+    public async Task AddProjectPermissionsAsync(Guid projectUserId, IEnumerable<ProjectPermission> permissions)
+    {
+        var existing = await _context.ProjectUserProjectPermissions
+            .Where(p => p.ProjectUserId == projectUserId)
+            .Select(p => p.Permission)
+            .ToListAsync();
+
+        var toAdd = permissions
+            .Distinct()
+            .Except(existing)
+            .Select(permission => new ProjectUserProjectPermission
+            {
+                Id = Guid.NewGuid(),
+                ProjectUserId = projectUserId,
+                Permission = permission
+            });
+
+        _context.ProjectUserProjectPermissions.AddRange(toAdd);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task RemoveProjectPermissionAsync(Guid projectUserId, ProjectPermission permission)
     {
         var projectPermission = await _context.ProjectUserProjectPermissions
@@ -134,6 +155,19 @@ public class ProjectUserRepository : IProjectUserRepository
         if (projectPermission != null)
         {
             _context.ProjectUserProjectPermissions.Remove(projectPermission);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task RemoveAllProjectPermissionsAsync(Guid projectUserId)
+    {
+        var permissions = await _context.ProjectUserProjectPermissions
+            .Where(p => p.ProjectUserId == projectUserId)
+            .ToListAsync();
+
+        if (permissions.Count > 0)
+        {
+            _context.ProjectUserProjectPermissions.RemoveRange(permissions);
             await _context.SaveChangesAsync();
         }
     }
@@ -160,6 +194,34 @@ public class ProjectUserRepository : IProjectUserRepository
         }
     }
 
+    public async Task AddScopePermissionsAsync(Guid projectUserId, IReadOnlyDictionary<Guid, IEnumerable<ScopePermission>> scopePermissions)
+    {
+        if (scopePermissions.Count == 0)
+            return;
+
+        var scopeIds = scopePermissions.Keys.ToList();
+        var existing = await _context.ProjectUserScopePermissions
+            .Where(p => p.ProjectUserId == projectUserId && scopeIds.Contains(p.ScopeId))
+            .Select(p => new { p.ScopeId, p.Permission })
+            .ToListAsync();
+
+        var existingSet = existing.ToHashSet();
+
+        var toAdd = scopePermissions
+            .SelectMany(kv => kv.Value.Distinct().Select(permission => new { ScopeId = kv.Key, Permission = permission }))
+            .Where(x => !existingSet.Any(e => e.ScopeId == x.ScopeId && e.Permission == x.Permission))
+            .Select(x => new ProjectUserScopePermission
+            {
+                Id = Guid.NewGuid(),
+                ProjectUserId = projectUserId,
+                ScopeId = x.ScopeId,
+                Permission = x.Permission
+            });
+
+        _context.ProjectUserScopePermissions.AddRange(toAdd);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task RemoveScopePermissionAsync(Guid projectUserId, Guid scopeId, ScopePermission permission)
     {
         var scopePermission = await _context.ProjectUserScopePermissions
@@ -170,6 +232,19 @@ public class ProjectUserRepository : IProjectUserRepository
         if (scopePermission != null)
         {
             _context.ProjectUserScopePermissions.Remove(scopePermission);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task RemoveAllScopePermissionsAsync(Guid projectUserId)
+    {
+        var permissions = await _context.ProjectUserScopePermissions
+            .Where(p => p.ProjectUserId == projectUserId)
+            .ToListAsync();
+
+        if (permissions.Count > 0)
+        {
+            _context.ProjectUserScopePermissions.RemoveRange(permissions);
             await _context.SaveChangesAsync();
         }
     }

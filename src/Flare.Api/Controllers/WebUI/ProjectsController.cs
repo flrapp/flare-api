@@ -24,7 +24,7 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(typeof(ProjectDetailResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ProjectDetailResponseDto>> CreateProject([FromBody] CreateProjectDto dto)
+    public async Task<ActionResult> CreateProject([FromBody] CreateProjectDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -33,9 +33,9 @@ public class ProjectsController : ControllerBase
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _projectService.CreateAsync(dto, userId, username);
+        await _projectService.CreateAsync(dto, userId, username);
 
-        return CreatedAtAction(nameof(GetProject), new { projectId = result.Id }, result);
+        return Created();
     }
 
     [HttpGet]
@@ -71,7 +71,7 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<ProjectDetailResponseDto>> UpdateProject(Guid projectId, [FromBody] UpdateProjectDto dto)
+    public async Task<ActionResult> UpdateProject(Guid projectId, [FromBody] UpdateProjectDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -80,9 +80,9 @@ public class ProjectsController : ControllerBase
 
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _projectService.UpdateAsync(projectId, dto, userId, username);
+        await _projectService.UpdateAsync(projectId, dto, userId, username);
 
-        return Ok(result);
+        return Ok();
     }
 
     [HttpDelete("{projectId}")]
@@ -120,13 +120,13 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<RegenerateApiKeyResponseDto>> RegenerateApiKey(Guid projectId)
+    public async Task<ActionResult> RegenerateApiKey(Guid projectId)
     {
         var userId = HttpContext.GetCurrentUserId()!.Value;
         var username = HttpContext.GetCurrentUsername() ?? "unknown";
-        var result = await _projectService.RegenerateApiKeyAsync(projectId, userId, username);
+        await _projectService.RegenerateApiKeyAsync(projectId, userId, username);
 
-        return Ok(result);
+        return Ok();
     }
 
     [HttpPost("{projectId}/archive")]

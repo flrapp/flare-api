@@ -110,30 +110,6 @@ public class UserService : IUserService
         };
     }
 
-    public async Task<UserResponseDto> GetUserByIdAsync(Guid userId)
-    {
-        var user = await _userRepository.GetByIdAsync(userId);
-
-        if (user == null)
-        {
-            throw new InvalidOperationException("User not found");
-        }
-
-        return new UserResponseDto
-        {
-            UserId = user.Id,
-            Username = user.Username,
-            FullName = user.FullName,
-            GlobalRole = user.GlobalRole,
-            IsActive = user.IsActive,
-            CreatedAt = user.CreatedAt,
-            LastLoginAt = user.LastLoginAt,
-            IsBruteForceLocked = user.IsBruteForceLocked,
-            FailedLoginAttempts = user.FailedLoginAttempts,
-            LockedUntil = user.LockedUntil
-        };
-    }
-
     public async Task<UserResponseDto> UpdateUserAsync(Guid userId, UpdateUserDto dto, string actorUsername)
     {
         var user = await _userRepository.GetByIdAsync(userId);
@@ -166,21 +142,6 @@ public class UserService : IUserService
             FailedLoginAttempts = user.FailedLoginAttempts,
             LockedUntil = user.LockedUntil
         };
-    }
-
-    public async Task SoftDeleteUserAsync(Guid userId, string actorUsername)
-    {
-        var user = await _userRepository.GetByIdAsync(userId);
-
-        if (user == null)
-        {
-            throw new InvalidOperationException("User not found");
-        }
-
-        user.IsActive = false;
-        await _userRepository.UpdateAsync(user);
-
-        _auditLogger.LogUserAudit(user.Username, actorUsername, "User", null, "Deactivated");
     }
 
     public async Task ResetUserPasswordAsync(Guid userId, ResetUserPasswordDto dto, string actorUsername)
