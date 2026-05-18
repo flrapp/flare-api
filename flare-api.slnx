@@ -13,6 +13,11 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs\CLAUDE.md" />
+    <File Path="docs\adr\0000-template.md" />
+    <File Path="docs\SKILL.md" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Flare.Api/Flare.Api.csproj" />
     <Project Path="src/Flare.Application/Flare.Application.csproj" />
