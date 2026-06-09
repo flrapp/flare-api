@@ -30,7 +30,7 @@
     <PackageVersion Include="Asp.Versioning.Http" Version="10.0.0" />
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
     <!-- Options -->
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.8" />
     <!-- Health Checks -->
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.8" />
     <!-- Logging -->
