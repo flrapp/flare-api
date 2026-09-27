@@ -12,6 +12,7 @@
     <File Path="Directory.Packages.props" />
     <File Path="LICENSE" />
     <File Path="README.md" />
+    <File Path="coverage.runsettings" />
   </Folder>
   <Folder Name="/docs/">
     <File Path="docs\CLAUDE.md" />
@@ -23,5 +24,9 @@
     <Project Path="src/Flare.Application/Flare.Application.csproj" />
     <Project Path="src/Flare.Domain/Flare.Domain.csproj" />
     <Project Path="src/Flare.Infrastructure/Flare.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Flare.IntegrationTests/Flare.IntegrationTests.csproj" />
+    <Project Path="tests/Flare.UnitTests/Flare.UnitTests.csproj" />
   </Folder>
 </Solution>
