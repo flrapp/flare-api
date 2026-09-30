@@ -58,6 +58,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             UnauthorizedException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             AccountLockedException => (StatusCodes.Status401Unauthorized, "Account Locked"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Forbidden"),
+            ConflictException => (StatusCodes.Status409Conflict, "Conflict"),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
         };

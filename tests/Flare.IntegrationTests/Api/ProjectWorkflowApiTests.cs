@@ -2,7 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using Flare.Application.DTOs;
 using Flare.Domain.Enums;
+using Flare.Infrastructure.Data;
 using Flare.IntegrationTests.TestSupport;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Flare.IntegrationTests.Api;
 
@@ -72,7 +75,7 @@ public class ProjectWorkflowApiTests(FlareApiFactory factory) : IClassFixture<Fl
         var badUpdate = await admin.PutAsJsonAsync($"/api/v1/projects/{project.Id}", new UpdateProjectDto { Alias = "a", Name = "x" });
 
         Assert.Equal(HttpStatusCode.BadRequest, tooShort.StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, duplicate.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, badUpdate.StatusCode);
     }
 
@@ -88,7 +91,7 @@ public class ProjectWorkflowApiTests(FlareApiFactory factory) : IClassFixture<Fl
         var scopesUrl = $"/api/v1/projects/{project.Id}/scopes";
 
         await (await admin.PostAsJsonAsync(scopesUrl, new CreateScopeDto { Alias = "qa", Name = "QA" })).EnsureStatusAsync(HttpStatusCode.Created);
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(scopesUrl, new CreateScopeDto { Alias = "qa", Name = "QA" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync(scopesUrl, new CreateScopeDto { Alias = "qa", Name = "QA" })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(scopesUrl, new CreateScopeDto { Alias = "x", Name = "" })).StatusCode);
 
         var scopes = await admin.GetJsonAsync<List<ScopeResponseDto>>(scopesUrl);
@@ -125,6 +128,12 @@ public class ProjectWorkflowApiTests(FlareApiFactory factory) : IClassFixture<Fl
         var invalidFlag = await admin.PostAsJsonAsync($"/api/v1/projects/{project.Id}/feature-flags",
             new CreateFeatureFlagDto { Key = "x", Name = "a", Type = FeatureFlagType.Boolean });
         Assert.Equal(HttpStatusCode.BadRequest, invalidFlag.StatusCode);
+        var duplicateKey = await admin.PostAsJsonAsync($"/api/v1/projects/{project.Id}/feature-flags",
+            new CreateFeatureFlagDto { Key = flag.Key, Name = "Duplicate", Type = FeatureFlagType.Boolean });
+        Assert.Equal(HttpStatusCode.Conflict, duplicateKey.StatusCode);
+        var wrongType = await admin.PutAsJsonAsync($"/api/v1/feature-flags/{flag.Id}/values",
+            new UpdateFeatureFlagValueDto { ScopeId = dev.ScopeId, Type = FeatureFlagType.String, StringValue = "x" });
+        Assert.Equal(HttpStatusCode.BadRequest, wrongType.StatusCode);
 
         await (await admin.PutAsJsonAsync($"/api/v1/feature-flags/{flag.Id}/values",
             new UpdateFeatureFlagValueDto { ScopeId = dev.ScopeId, Type = FeatureFlagType.Boolean, BooleanValue = true }))
@@ -134,9 +143,10 @@ public class ProjectWorkflowApiTests(FlareApiFactory factory) : IClassFixture<Fl
             .EnsureStatusAsync(HttpStatusCode.OK);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/v1/feature-flags/{flag.Id}",
             new UpdateFeatureFlagDto { Key = "k", Name = "n" })).StatusCode);
-        // [Required] on a non-nullable Guid never fails, so a missing scopeId surfaces as "Scope not found".
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.PutAsync($"/api/v1/feature-flags/{flag.Id}/values",
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsync($"/api/v1/feature-flags/{flag.Id}/values",
             JsonContent.Create(new { }))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/v1/feature-flags/{flag.Id}/values",
+            new UpdateFeatureFlagValueDto { ScopeId = Guid.Empty, Type = FeatureFlagType.Boolean, BooleanValue = true })).StatusCode);
 
         var reloaded = await admin.GetJsonAsync<FeatureFlagResponseDto>($"/api/v1/feature-flags/{flag.Id}");
         Assert.Equal("Renamed flag", reloaded.Name);
@@ -160,6 +170,27 @@ public class ProjectWorkflowApiTests(FlareApiFactory factory) : IClassFixture<Fl
 
         var reloaded = await admin.GetJsonAsync<FeatureFlagResponseDto>($"/api/v1/feature-flags/{flag.Id}");
         Assert.Equal("blue", reloaded.Values.Single(v => v.ScopeAlias == "dev").StringValue);
+    }
+
+    [Fact]
+    public async Task Value_update_recreates_missing_scope_value()
+    {
+        var admin = await factory.LoginAsAdminAsync();
+        var project = await CreateProjectAsync(admin);
+        var flag = await CreateFlagAsync(admin, project.Id);
+        var dev = flag.Values.Single(v => v.ScopeAlias == "dev");
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.FeatureFlagValues.Where(v => v.Id == dev.Id).ExecuteDeleteAsync();
+        }
+
+        await (await admin.PutAsJsonAsync($"/api/v1/feature-flags/{flag.Id}/values",
+            new UpdateFeatureFlagValueDto { ScopeId = dev.ScopeId, Type = FeatureFlagType.Boolean, BooleanValue = true }))
+            .EnsureStatusAsync(HttpStatusCode.OK);
+
+        var reloaded = await admin.GetJsonAsync<FeatureFlagResponseDto>($"/api/v1/feature-flags/{flag.Id}");
+        Assert.True(reloaded.Values.Single(v => v.ScopeAlias == "dev").BooleanValue);
     }
 
     #endregion
@@ -247,7 +278,7 @@ public class ProjectWorkflowApiTests(FlareApiFactory factory) : IClassFixture<Fl
         var segmentsUrl = $"/api/v1/projects/{project.Id}/segments";
 
         await (await admin.PostAsJsonAsync(segmentsUrl, new CreateSegmentDto { Name = "beta", Description = "testers" })).EnsureStatusAsync(HttpStatusCode.Created);
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(segmentsUrl, new CreateSegmentDto { Name = "beta" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsJsonAsync(segmentsUrl, new CreateSegmentDto { Name = "beta" })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(segmentsUrl, new { description = "no name" })).StatusCode);
         var segment = Assert.Single(await admin.GetJsonAsync<List<SegmentResponseDto>>(segmentsUrl));
         var membersUrl = $"/api/v1/segments/{segment.Id}/members";
@@ -300,6 +331,7 @@ public class ProjectWorkflowApiTests(FlareApiFactory factory) : IClassFixture<Fl
         });
         await invite.EnsureStatusAsync(HttpStatusCode.Created);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(usersUrl, new InviteUserDto { UserId = member.UserId })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(usersUrl, new { projectPermissions = Array.Empty<int>() })).StatusCode);
 
         var myPermissions = await memberClient.GetJsonAsync<MyPermissionsResponseDto>($"/api/v1/projects/{project.Id}/my-permissions");
         Assert.Equal([ProjectPermission.ManageFeatureFlags], myPermissions.ProjectPermissions);

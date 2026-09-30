@@ -165,16 +165,26 @@ public class AuthAndUsersApiTests(FlareApiFactory factory) : IClassFixture<Flare
         Assert.Equal(HttpStatusCode.BadRequest, badUpdate.StatusCode);
     }
 
-    [Fact(Skip = "Known issue: services signal client errors with InvalidOperationException (duplicate username, duplicate flag key, flag type mismatch, unknown user on update), which GlobalExceptionHandler maps to 500.")]
-    public async Task Creating_duplicate_username_is_a_client_error()
+    [Fact]
+    public async Task Creating_duplicate_username_returns_409()
     {
         var admin = await factory.LoginAsAdminAsync();
         var dto = new CreateUserDto { Username = Unique("dup"), FullName = "Dup User", TemporaryPassword = "UserPass123" };
-        await admin.PostAsJsonAsync("/api/v1/users", dto);
+        await (await admin.PostAsJsonAsync("/api/v1/users", dto)).EnsureStatusAsync(HttpStatusCode.Created);
 
         var duplicate = await admin.PostAsJsonAsync("/api/v1/users", dto);
 
-        Assert.True((int)duplicate.StatusCode is >= 400 and < 500);
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+    }
+
+    [Fact]
+    public async Task Updating_unknown_user_returns_404()
+    {
+        var admin = await factory.LoginAsAdminAsync();
+
+        var response = await admin.PutAsJsonAsync($"/api/v1/users/{Guid.NewGuid()}", new UpdateUserDto { FullName = "Nobody Here" });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

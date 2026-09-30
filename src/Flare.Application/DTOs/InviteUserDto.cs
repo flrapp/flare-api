@@ -1,11 +1,11 @@
-using System.ComponentModel.DataAnnotations;
+using Flare.Application.Validation;
 using Flare.Domain.Enums;
 
 namespace Flare.Application.DTOs;
 
 public class InviteUserDto
 {
-    [Required]
+    [NotEmptyGuid]
     public Guid UserId { get; set; }
 
     public List<ProjectPermission> ProjectPermissions { get; set; } = new();

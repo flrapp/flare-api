@@ -43,9 +43,17 @@ internal sealed class SdkEvaluationRateLimiterPolicy : IRateLimiterPolicy<string
     }
 
     public Func<OnRejectedContext, CancellationToken, ValueTask>? OnRejected => null;
-
+    
     private static string? ExtractApiKey(HttpContext context)
     {
+        string? authorization = context.Request.Headers[HeadersKeys.AuthorizationHeaderName];
+        if (authorization != null && authorization.StartsWith(HeadersKeys.BearerPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var bearerKey = authorization[HeadersKeys.BearerPrefix.Length..].Trim();
+            if (bearerKey.Length > 0)
+                return bearerKey;
+        }
+
         var apiKey = context.Request.Headers[HeadersKeys.ApiKeyHeaderName].FirstOrDefault();
         return string.IsNullOrEmpty(apiKey) ? null : apiKey;
     }

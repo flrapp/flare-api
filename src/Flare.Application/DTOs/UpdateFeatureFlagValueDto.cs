@@ -1,5 +1,5 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using Flare.Application.Validation;
 using Flare.Domain.Entities;
 using Flare.Domain.Enums;
 using ValidationException = Flare.Domain.Exceptions.ValidationException;
@@ -8,7 +8,7 @@ namespace Flare.Application.DTOs;
 
 public class UpdateFeatureFlagValueDto
 {
-    [Required]
+    [NotEmptyGuid]
     public Guid ScopeId { get; set; }
 
     public bool? BooleanValue { get; set; }

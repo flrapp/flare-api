@@ -94,9 +94,11 @@ public class FeatureFlagValue
         DefaultJsonValue = null;
     }
 
+    // The (object) cast pins the switch type; otherwise every branch converts implicitly to JsonNode
+    // and primitives come back as JsonValue instead of bool/string/double.
     public object? ResolveValue() => FeatureFlag.Type switch
     {
-        FeatureFlagType.Boolean => IsEnabled,
+        FeatureFlagType.Boolean => (object)IsEnabled,
         FeatureFlagType.String => DefaultStringValue,
         FeatureFlagType.Number => DefaultNumberValue,
         FeatureFlagType.Json => DefaultJsonValue is null ? null : JsonNode.Parse(DefaultJsonValue),

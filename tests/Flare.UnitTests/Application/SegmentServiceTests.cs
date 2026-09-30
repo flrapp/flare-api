@@ -81,7 +81,7 @@ public class SegmentServiceTests
         GrantManageSegments();
         _segments.ExistsByProjectAndNameAsync(_project.Id, "vip").Returns(true);
 
-        await Assert.ThrowsAsync<BadRequestException>(() =>
+        await Assert.ThrowsAsync<ConflictException>(() =>
             _sut.CreateAsync(_project.Id, new CreateSegmentDto { Name = "vip" }, _userId, "alice"));
     }
 
@@ -128,7 +128,7 @@ public class SegmentServiceTests
         var segment = GivenSegment();
         _segments.ExistsByProjectAndNameAsync(_project.Id, "taken", segment.Id).Returns(true);
 
-        await Assert.ThrowsAsync<BadRequestException>(() =>
+        await Assert.ThrowsAsync<ConflictException>(() =>
             _sut.UpdateAsync(segment.Id, new UpdateSegmentDto { Name = "taken" }, _userId, "alice"));
     }
 

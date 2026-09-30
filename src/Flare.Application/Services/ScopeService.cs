@@ -47,7 +47,7 @@ public class ScopeService : IScopeService
 
         if (await _scopeRepository.ExistsByProjectAndAliasAsync(projectId, dto.Alias))
         {
-            throw new BadRequestException("Scope with this alias already exists.");
+            throw new ConflictException("Scope with this alias already exists.");
         }
 
         var project = await _projectRepository.GetByIdAsync(projectId);

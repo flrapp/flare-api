@@ -52,7 +52,7 @@ public class UserServiceTests
     {
         _users.ExistsByUsernameAsync("carol").Returns(true);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<ConflictException>(() =>
             _sut.CreateUserAsync(new CreateUserDto { Username = "carol", FullName = "C", TemporaryPassword = "x" }, Guid.NewGuid(), "admin"));
 
         await _users.DidNotReceive().AddAsync(Arg.Any<User>());
@@ -104,7 +104,7 @@ public class UserServiceTests
     [Fact]
     public async Task UpdateUser_unknown_user_throws()
     {
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<NotFoundException>(() =>
             _sut.UpdateUserAsync(Guid.NewGuid(), new UpdateUserDto { FullName = "x" }, "admin"));
     }
 

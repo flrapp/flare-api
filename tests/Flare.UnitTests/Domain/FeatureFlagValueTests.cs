@@ -70,8 +70,15 @@ public class FeatureFlagValueTests
         Assert.True(value.UpdatedAt > DateTime.UtcNow.AddMinutes(-1));
     }
 
-    // ResolveValue's switch is implicitly typed as JsonNode (every branch converts to it),
-    // so the contract we can rely on is the serialized JSON, not the CLR type.
+    // Primitive types must stay CLR primitives (not JsonValue) so callers can pattern-match on them.
+    [Fact]
+    public void ResolveValue_returns_clr_primitives()
+    {
+        Assert.IsType<bool>(WithFlag(FeatureFlagValue.ForBoolean(FlagId, ScopeId, true), FeatureFlagType.Boolean).ResolveValue());
+        Assert.IsType<string>(WithFlag(FeatureFlagValue.ForString(FlagId, ScopeId, "s"), FeatureFlagType.String).ResolveValue());
+        Assert.IsType<double>(WithFlag(FeatureFlagValue.ForNumber(FlagId, ScopeId, 2), FeatureFlagType.Number).ResolveValue());
+    }
+
     [Fact]
     public void ResolveValue_serializes_to_value_for_each_type()
     {

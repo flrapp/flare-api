@@ -66,6 +66,7 @@ public class SdkApiTests(FlareApiFactory factory) : IClassFixture<FlareApiFactor
         Assert.True(body.GetProperty("value").GetBoolean());
         Assert.Equal("STATIC", body.GetProperty("reason").GetString());
         Assert.Equal("boolean", body.GetProperty("type").GetString());
+        Assert.Equal("enabled", body.GetProperty("variant").GetString());
     }
 
     [Fact]
@@ -78,6 +79,7 @@ public class SdkApiTests(FlareApiFactory factory) : IClassFixture<FlareApiFactor
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.False(body.GetProperty("value").GetBoolean());
         Assert.Equal("TARGETING_MATCH", body.GetProperty("reason").GetString());
+        Assert.Equal("disabled", body.GetProperty("variant").GetString());
     }
 
     [Fact]
@@ -164,10 +166,10 @@ public class SdkApiTests(FlareApiFactory factory) : IClassFixture<FlareApiFactor
     }
 }
 
-/// Separate host with a tiny SDK budget so the rate limiter can be exercised deterministically.
+/// Separate host with a tiny per-key SDK budget (and a roomy global one) so partitioning can be observed.
 public sealed class RateLimitedApiFactory : FlareApiFactory
 {
-    protected override int SdkPermitsPerSecond => 2;
+    protected override int SdkPerKeyPermitsPerSecond => 2;
 }
 
 public class SdkRateLimitingTests(RateLimitedApiFactory factory) : IClassFixture<RateLimitedApiFactory>
@@ -183,6 +185,24 @@ public class SdkRateLimitingTests(RateLimitedApiFactory factory) : IClassFixture
             statuses.Add((await client.PostAsJsonAsync("/sdk/v1/flags/evaluate", request)).StatusCode);
 
         Assert.Contains(HttpStatusCode.TooManyRequests, statuses);
+    }
+
+    [Fact]
+    public async Task Sdk_budget_is_tracked_per_bearer_key()
+    {
+        var request = new FlagEvaluationRequestDto { FlagKey = "any", Context = new EvaluationContextDto { Scope = "dev" } };
+        var exhausted = factory.CreateHttpsClient();
+        exhausted.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "key-a-" + Guid.NewGuid());
+        var fresh = factory.CreateHttpsClient();
+        fresh.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "key-b-" + Guid.NewGuid());
+
+        var statuses = new List<HttpStatusCode>();
+        for (var i = 0; i < 5; i++)
+            statuses.Add((await exhausted.PostAsJsonAsync("/sdk/v1/flags/evaluate", request)).StatusCode);
+        var other = await fresh.PostAsJsonAsync("/sdk/v1/flags/evaluate", request);
+
+        Assert.Contains(HttpStatusCode.TooManyRequests, statuses);
+        Assert.Equal(HttpStatusCode.Unauthorized, other.StatusCode);
     }
 
     [Fact]

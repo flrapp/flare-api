@@ -82,7 +82,7 @@ public class FeatureFlagServiceTests
         _permissions.HasProjectPermissionAsync(_userId, _project.Id, ProjectPermission.ManageFeatureFlags).Returns(true);
         _flags.ExistsByProjectAndKeyAsync(_project.Id, "dup").Returns(true);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateSut().CreateAsync(_project.Id,
+        await Assert.ThrowsAsync<ConflictException>(() => CreateSut().CreateAsync(_project.Id,
             new CreateFeatureFlagDto { Key = "dup", Name = "Dup", Type = FeatureFlagType.Boolean }, _userId, "alice"));
     }
 
@@ -232,17 +232,22 @@ public class FeatureFlagServiceTests
         _audit.Received(1).LogProjectAudit("proj", "alice", "FeatureFlag", "dev", "ValueUpdated", Arg.Any<object>(), Arg.Any<object>());
     }
 
-    [Fact(Skip = "Known bug: when no value exists for the scope, UpdateValueAsync creates one without its Scope navigation, then dereferences featureFlagValue.Scope.Alias for the cache key (NullReferenceException after the write).")]
+    [Fact]
     public async Task UpdateValue_creates_missing_value_for_scope()
     {
         var flag = GivenFlag();
         _permissions.HasScopePermissionAsync(_userId, _dev.Id, ScopePermission.UpdateFeatureFlags).Returns(true);
+        FeatureFlagValue? added = null;
+        await _flags.AddValuesAsync(Arg.Do<IEnumerable<FeatureFlagValue>>(v => added = v.Single()));
 
         await CreateSut().UpdateValueAsync(flag.Id, BoolUpdate(true), _userId, "alice");
 
-        var created = Assert.Single(flag.Values);
-        Assert.True(created.IsEnabled);
+        Assert.NotNull(added);
+        Assert.Equal(_dev.Id, added.ScopeId);
+        Assert.True(added.IsEnabled);
+        await _flags.DidNotReceiveWithAnyArgs().UpdateValueAsync(default!);
         await _cache.Received(1).RemoveAsync("feature_proj_dev_flag", Arg.Any<CancellationToken>());
+        _audit.Received(1).LogProjectAudit("proj", "alice", "FeatureFlag", "dev", "ValueUpdated", Arg.Any<object>(), Arg.Any<object>());
     }
 
     [Fact]
@@ -255,7 +260,7 @@ public class FeatureFlagServiceTests
 
         _permissions.HasScopePermissionAsync(_userId, Arg.Any<Guid>(), ScopePermission.UpdateFeatureFlags).Returns(true);
         var wrongType = new UpdateFeatureFlagValueDto { ScopeId = _dev.Id, Type = FeatureFlagType.String, StringValue = "x" };
-        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateSut().UpdateValueAsync(flag.Id, wrongType, _userId, "alice"));
+        await Assert.ThrowsAsync<BadRequestException>(() => CreateSut().UpdateValueAsync(flag.Id, wrongType, _userId, "alice"));
 
         var unknownScope = new UpdateFeatureFlagValueDto { ScopeId = Guid.NewGuid(), Type = FeatureFlagType.Boolean };
         await Assert.ThrowsAsync<NotFoundException>(() => CreateSut().UpdateValueAsync(flag.Id, unknownScope, _userId, "alice"));
@@ -482,14 +487,27 @@ public class FeatureFlagServiceTests
         Assert.Equal(expectedJson, Json(result.Value));
     }
 
-    [Fact(Skip = "Known bug: FlagValueReader.ReadServe/FeatureFlagValue.ResolveValue return JsonValue (switch is implicitly typed as JsonNode), so Variant's `bool b` pattern never matches and variant is always null.")]
+    [Fact]
     public async Task Evaluate_boolean_flag_reports_enabled_variant()
     {
         GivenEvaluable(FeatureFlagType.Boolean, v => v.SetBooleanDefault(true));
 
         var result = await Evaluate();
 
+        Assert.Equal(true, result.Value);
         Assert.Equal("enabled", result.Variant);
+    }
+
+    [Fact]
+    public async Task Evaluate_boolean_rule_match_reports_disabled_variant()
+    {
+        var value = GivenEvaluable(FeatureFlagType.Boolean, v => v.SetBooleanDefault(true));
+        AddRule(value, 1, false, When("targetingKey", ComparisonOperator.Equals, "u1"));
+
+        var result = await Evaluate(Context("u1"));
+
+        Assert.Equal(false, result.Value);
+        Assert.Equal("disabled", result.Variant);
     }
 
     [Fact]

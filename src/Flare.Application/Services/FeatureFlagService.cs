@@ -54,7 +54,7 @@ public class FeatureFlagService : IFeatureFlagService
         }
 
         if (await _featureFlagRepository.ExistsByProjectAndKeyAsync(projectId, dto.Key))
-            throw new InvalidOperationException("Feature flag with this key already exists in this project.");
+            throw new ConflictException("Feature flag with this key already exists in this project.");
 
         var featureFlag = new FeatureFlag
         {
@@ -195,7 +195,7 @@ public class FeatureFlagService : IFeatureFlagService
 
         if (featureFlag.Type != dto.Type)
         {
-            throw new InvalidOperationException("Mismatched feature flag type.");
+            throw new BadRequestException("Mismatched feature flag type.");
         }
 
         var scope = featureFlag.Project.Scopes.FirstOrDefault(s => s.Id == dto.ScopeId);
@@ -210,20 +210,25 @@ public class FeatureFlagService : IFeatureFlagService
         }
 
         var featureFlagValue = await _featureFlagRepository.GetValueByFlagIdAndScopeIdAsync(featureFlag.Id, dto.ScopeId);
+        var isNewValue = featureFlagValue == null;
 
         if (featureFlagValue == null)
         {
             featureFlagValue = featureFlag.CreateValueForScope(dto.ScopeId);
-            featureFlag.Values.Add(featureFlagValue);
+            featureFlagValue.FeatureFlag = featureFlag;
+            featureFlagValue.Scope = scope;
         }
-        var previousValue = featureFlagValue.ResolveValue();
+        var previousValue = isNewValue ? null : featureFlagValue.ResolveValue();
 
         dto.ApplyDefault(featureFlagValue);
 
         var newValue = featureFlagValue.ResolveValue();
         featureFlag.UpdatedAt = DateTime.UtcNow;
-        await _featureFlagRepository.UpdateValueAsync(featureFlagValue);
-        var cacheKey = CacheKeys.FeatureFlagCacheKey(featureFlag.Project.Alias, featureFlagValue.Scope.Alias, featureFlag.Key);
+        if (isNewValue)
+            await _featureFlagRepository.AddValuesAsync([featureFlagValue]);
+        else
+            await _featureFlagRepository.UpdateValueAsync(featureFlagValue);
+        var cacheKey = CacheKeys.FeatureFlagCacheKey(featureFlag.Project.Alias, scope.Alias, featureFlag.Key);
         await _hybridCache.RemoveAsync(cacheKey);
 
         _auditLogger.LogProjectAudit(

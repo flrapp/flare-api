@@ -1,11 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using Flare.Application.Validation;
 using Flare.Domain.Enums;
 
 namespace Flare.Application.DTOs;
 
 public class AssignScopePermissionsDto
 {
-    [Required]
+    [NotEmptyGuid]
     public Guid ScopeId { get; set; }
 
     [Required]

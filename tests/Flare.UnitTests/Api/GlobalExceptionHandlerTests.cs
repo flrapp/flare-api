@@ -29,6 +29,7 @@ public class GlobalExceptionHandlerTests
         { new NotFoundException("missing"), 404, "Not Found" },
         { new UnauthorizedException("who"), 401, "Unauthorized" },
         { new ForbiddenException("no"), 403, "Forbidden" },
+        { new ConflictException("taken"), 409, "Conflict" },
         { new UnauthorizedAccessException("key"), 401, "Unauthorized" },
         { new InvalidOperationException("boom"), 500, "Internal Server Error" }
     };

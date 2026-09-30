@@ -9,9 +9,10 @@ namespace Flare.Application.Services;
 /// through here instead of switching on FeatureFlagType itself.
 internal static class FlagValueReader
 {
+    // (object?) pins the switch type; see FeatureFlagValue.ResolveValue.
     public static object? ReadServe(TargetingRule rule, FeatureFlagType type) => type switch
     {
-        FeatureFlagType.Boolean => rule.ServeBooleanValue,
+        FeatureFlagType.Boolean => (object?)rule.ServeBooleanValue,
         FeatureFlagType.String => rule.ServeStringValue,
         FeatureFlagType.Number => rule.ServeNumberValue,
         FeatureFlagType.Json => string.IsNullOrWhiteSpace(rule.ServeJsonValue) ? null : JsonNode.Parse(rule.ServeJsonValue),

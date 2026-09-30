@@ -89,7 +89,7 @@ public class ScopeServiceTests
         GrantManageScopes();
         _scopes.ExistsByProjectAndAliasAsync(_project.Id, "dev").Returns(true);
 
-        await Assert.ThrowsAsync<BadRequestException>(() =>
+        await Assert.ThrowsAsync<ConflictException>(() =>
             _sut.CreateAsync(_project.Id, new CreateScopeDto { Alias = "dev", Name = "Dev" }, _userId, "alice"));
     }
 

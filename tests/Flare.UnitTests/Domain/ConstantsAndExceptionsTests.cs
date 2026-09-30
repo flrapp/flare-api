@@ -49,6 +49,7 @@ public class ConstantsAndExceptionsTests
         Assert.Equal("a", new BadRequestException("a").Message);
         Assert.Equal("b", new ForbiddenException("b").Message);
         Assert.Equal("c", new UnauthorizedException("c").Message);
+        Assert.Equal("d", new ConflictException("d").Message);
     }
 
     [Fact]

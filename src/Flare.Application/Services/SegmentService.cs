@@ -58,7 +58,7 @@ public class SegmentService : ISegmentService
             throw new NotFoundException("Project not found.");
 
         if (await _segmentRepository.ExistsByProjectAndNameAsync(projectId, dto.Name))
-            throw new BadRequestException($"A segment named '{dto.Name}' already exists in this project.");
+            throw new ConflictException($"A segment named '{dto.Name}' already exists in this project.");
 
         var segment = new Segment
         {
@@ -85,7 +85,7 @@ public class SegmentService : ISegmentService
             throw new ForbiddenException("You do not have permission to manage segments in this project.");
 
         if (segment.Name != dto.Name && await _segmentRepository.ExistsByProjectAndNameAsync(segment.ProjectId, dto.Name, excludeSegmentId: segmentId))
-            throw new BadRequestException($"A segment named '{dto.Name}' already exists in this project.");
+            throw new ConflictException($"A segment named '{dto.Name}' already exists in this project.");
 
         segment.Name = dto.Name;
         segment.Description = dto.Description;

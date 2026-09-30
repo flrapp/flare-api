@@ -66,7 +66,7 @@ public class ProjectServiceTests
     {
         _projects.ExistsByAliasAsync("dup").Returns(true);
 
-        await Assert.ThrowsAsync<BadRequestException>(() =>
+        await Assert.ThrowsAsync<ConflictException>(() =>
             _sut.CreateAsync(new CreateProjectDto { Alias = "dup", Name = "Dup" }, _userId, "alice"));
     }
 

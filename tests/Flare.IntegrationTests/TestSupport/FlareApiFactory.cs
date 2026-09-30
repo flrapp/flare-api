@@ -16,7 +16,8 @@ public class FlareApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private string _connectionString = string.Empty;
 
-    protected virtual int SdkPermitsPerSecond => 10_000;
+    protected virtual int SdkGlobalPermitsPerSecond => 10_000;
+    protected virtual int SdkPerKeyPermitsPerSecond => 10_000;
 
     public async ValueTask InitializeAsync()
     {
@@ -35,8 +36,8 @@ public class FlareApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             ["ConnectionStrings:DefaultConnection"] = _connectionString,
             ["ADMIN_USERNAME"] = AdminUsername,
             ["ADMIN_PASSWORD"] = AdminPassword,
-            ["RateLimiting:Global:PermitsPerSecond"] = SdkPermitsPerSecond.ToString(),
-            ["RateLimiting:PerProject:PermitsPerSecond"] = SdkPermitsPerSecond.ToString(),
+            ["RateLimiting:Global:PermitsPerSecond"] = SdkGlobalPermitsPerSecond.ToString(),
+            ["RateLimiting:PerProject:PermitsPerSecond"] = SdkPerKeyPermitsPerSecond.ToString(),
             ["Serilog:MinimumLevel:Default"] = "Warning",
             ["Serilog:MinimumLevel:Override:Flare.Api.Middleware"] = "Fatal"
         }));

@@ -37,7 +37,7 @@ public class ProjectService : IProjectService
     {
         if (await _projectRepository.ExistsByAliasAsync(dto.Alias))
         {
-           throw new BadRequestException("This alias already exists");
+           throw new ConflictException("This alias already exists");
         }
 
         var apiKey = GenerateApiKey();

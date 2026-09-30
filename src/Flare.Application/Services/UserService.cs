@@ -33,7 +33,7 @@ public class UserService : IUserService
 
         if (exists)
         {
-            throw new InvalidOperationException("User with this username already exists");
+            throw new ConflictException("User with this username already exists");
         }
 
         var user = new User
@@ -116,7 +116,7 @@ public class UserService : IUserService
 
         if (user == null)
         {
-            throw new InvalidOperationException("User not found");
+            throw new NotFoundException("User", userId);
         }
 
         var oldValue = new { user.FullName, user.GlobalRole };
